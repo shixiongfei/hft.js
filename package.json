@@ -1,5 +1,5 @@
 {
-  "name": "htf-js",
+  "name": "hft-js",
   "version": "0.0.0",
   "description": "High-Frequency Trading in Node.js",
   "main": "./lib/index.js",
