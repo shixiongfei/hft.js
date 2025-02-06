@@ -40,16 +40,16 @@ export interface ITickReceiver {
   onTick: (tick: TickData) => void;
 }
 
-export interface IInstrumentReceiver {
-  onInstrument: (instrument: InstrumentData) => void;
-}
-
 export interface ICommissionRateReceiver {
   onCommissionRate: (rate: CommissionRate) => void;
 }
 
 export interface IMarginRateReceiver {
   onMarginRate: (rate: MarginRate) => void;
+}
+
+export interface IInstrumentReceiver {
+  onInstrument: (instrument: InstrumentData) => void;
 }
 
 export interface ITradingAccountReceiver {
@@ -96,7 +96,6 @@ export interface ITraderProvider extends IProvider, IOrderEmitter {
   ) => void;
 
   queryMarginRate: (symbol: string, receiver: IMarginRateReceiver) => void;
-  queryInstrument: (symbol: string, receiver: IInstrumentReceiver) => void;
   queryInstruments: (receiver: IInstrumentReceiver) => void;
   queryTradingAccount: (receiver: ITradingAccountReceiver) => void;
   queryPosition: (receiver: IPositionReceiver) => void;
