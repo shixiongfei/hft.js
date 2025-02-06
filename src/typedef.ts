@@ -115,12 +115,12 @@ export type PositionData = {
   symbol: string;
   long: PositionSide;
   short: PositionSide;
-  details: PositionDetail;
+  details: PositionDetail[];
 };
 
 export type OffsetType = "open" | "close" | "close-today";
 
-export type OrderType = "limit";
+export type OrderFlag = "limit";
 
 export type OrderStatus =
   | "submitted"
@@ -143,7 +143,7 @@ export type OrderData = {
   symbol: string;
   date: number;
   time: number;
-  type: OrderType;
+  flag: OrderFlag;
   side: SideType;
   offset: OffsetType;
   price: number;
