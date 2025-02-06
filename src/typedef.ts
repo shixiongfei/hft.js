@@ -9,36 +9,69 @@
  * https://github.com/shixiongfei/hft.js
  */
 
-type TapeSide = {
+export type TapeSide = {
   price: number[];
   volume: number[];
 };
 
-type OrderBook = {
+export type OrderBook = {
   asks: TapeSide;
   bids: TapeSide;
 };
 
-type TickData = {
+export type TickData = {
   symbol: string;
   date: number;
   time: number;
   openInterest: number;
   price: number;
   volume: number;
+  amount: number;
   orderBook: OrderBook;
 };
 
-type PriceRange = {
+export type TapeType =
+  | "open"
+  | "close"
+  | "dual-open"
+  | "dual-close"
+  | "turnover"
+  | "no-deal";
+
+export type TapeDirection = "up" | "down" | "none";
+
+export type TapeStatus =
+  | "open-long"
+  | "open-short"
+  | "close-short"
+  | "close-long"
+  | "turnover-long"
+  | "turnover-short"
+  | "dual-open"
+  | "dual-close"
+  | "invalid";
+
+export type TapeData = {
+  symbol: string;
+  date: number;
+  time: number;
+  volumeDelta: number;
+  interestDelta: number;
+  type: TapeType;
+  direction: TapeDirection;
+  status: TapeStatus;
+};
+
+export type PriceRange = {
   upper: number;
   lower: number;
 };
 
-type PriceVolume = {
+export type PriceVolume = {
   [price: number]: number;
 };
 
-type MarketData = {
+export type MarketData = {
   symbol: string;
   tradingDay: number;
   date: number;
@@ -49,30 +82,27 @@ type MarketData = {
   openPrice: number;
   highPrice: number;
   lowPrice: number;
-  price: number;
-  volume: number;
-  amount: number;
+  lastTick: TickData;
   buyVolume: PriceVolume;
   sellVolume: PriceVolume;
-  lastTick: TickData;
   limits: PriceRange;
   bandings: PriceRange;
 };
 
-type PositionCell = {
+export type PositionCell = {
   position: number;
   frozen: number;
 };
 
-type PositionSide = {
+export type PositionSide = {
   today: PositionCell;
   history: PositionCell;
   pending: number;
 };
 
-type SideType = "long" | "short";
+export type SideType = "long" | "short";
 
-type PositionDetail = {
+export type PositionDetail = {
   symbol: string;
   date: number;
   side: SideType;
@@ -81,40 +111,38 @@ type PositionDetail = {
   margin: number;
 };
 
-type PositionData = {
+export type PositionData = {
   symbol: string;
   long: PositionSide;
   short: PositionSide;
   details: PositionDetail;
 };
 
-type OffsetType = "open" | "close" | "close-today";
+export type OffsetType = "open" | "close" | "close-today";
 
-type OrderType = "limit";
+export type OrderType = "limit";
 
-type OrderStatus =
+export type OrderStatus =
   | "submitted"
   | "partially-filled"
   | "filled"
   | "canceled"
   | "rejected";
 
-type TradeData = {
+export type TradeData = {
   id: string;
-  orderId: string;
-  symbol: string;
   date: number;
   time: number;
-  side: SideType;
-  offset: OffsetType;
   price: number;
   volume: number;
 };
 
-type OrderData = {
+export type OrderData = {
   id: string;
   receiptId: string;
   symbol: string;
+  date: number;
+  time: number;
   type: OrderType;
   side: SideType;
   offset: OffsetType;
@@ -125,7 +153,7 @@ type OrderData = {
   cancelTime?: number;
 };
 
-type OrderStatistic = {
+export type OrderStatistic = {
   symbol: string;
   places: number;
   entrusts: number;
@@ -134,25 +162,25 @@ type OrderStatistic = {
   rejects: number;
 };
 
-type RatioAmount = {
+export type RatioAmount = {
   ratio: number;
   amount: number;
 };
 
-type CommissionRate = {
+export type CommissionRate = {
   symbol: string;
   open: RatioAmount;
   close: RatioAmount;
   closeToday: RatioAmount;
 };
 
-type MarginRate = {
+export type MarginRate = {
   symbol: string;
   long: RatioAmount;
   short: RatioAmount;
 };
 
-type TradingAccount = {
+export type TradingAccount = {
   id: string;
   currency: string;
   preBalance: number;
@@ -165,9 +193,9 @@ type TradingAccount = {
   frozenCommission: number;
 };
 
-type ProductType = "future" | "option";
+export type ProductType = "future" | "option";
 
-type InstrumentData = {
+export type InstrumentData = {
   symbol: string;
   id: string;
   name: string;
