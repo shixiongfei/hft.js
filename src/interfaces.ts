@@ -36,6 +36,8 @@ export interface IOrderReceiver {
   onReject: (order: OrderData) => void;
 }
 
+export interface IStrategy extends ILifecycleListener, IOrderReceiver {}
+
 export interface ITickReceiver {
   onTick: (tick: TickData) => void;
 }
@@ -96,7 +98,7 @@ export interface ITraderProvider extends IProvider, IOrderEmitter {
   ) => void;
 
   queryMarginRate: (symbol: string, receiver: IMarginRateReceiver) => void;
-  queryInstruments: (receiver: IInstrumentReceiver) => void;
+  queryInstrument: (receiver: IInstrumentReceiver) => void;
   queryTradingAccount: (receiver: ITradingAccountReceiver) => void;
   queryPosition: (receiver: IPositionReceiver) => void;
   queryOrder: (receiver: IOrderReceiver) => void;
