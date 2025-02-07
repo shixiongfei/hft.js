@@ -23,9 +23,13 @@ import {
   TradingAccount,
 } from "./typedef.js";
 
+export interface IRuntimeEngine {
+  subscribe: (symbols: string[], receiver: ITickReceiver) => void;
+  unsubscribe: (symbols: string[], receiver: ITickReceiver) => void;
+}
+
 export interface ILifecycleListener {
   onInit: () => void;
-  onUpdate: () => void;
   onDestroy: () => void;
 }
 
@@ -36,7 +40,10 @@ export interface IOrderReceiver {
   onReject: (order: OrderData) => void;
 }
 
-export interface IStrategy extends ILifecycleListener, IOrderReceiver {}
+export interface IStrategy extends IOrderReceiver {
+  onInit: (engine: IRuntimeEngine) => void;
+  onDestroy: (engine: IRuntimeEngine) => void;
+}
 
 export interface ITickReceiver {
   onTick: (tick: TickData) => void;
@@ -63,20 +70,18 @@ export interface IPositionReceiver {
 }
 
 export interface IProvider {
-  login: () => boolean;
-  logout: () => void;
-  update: () => void;
+  login: (lifecycle: ILifecycleListener) => boolean;
+  logout: (lifecycle: ILifecycleListener) => void;
 }
 
 export interface IMarketProvider extends IProvider {
-  subscribe: (symbols: string | string[], receiver: ITickReceiver) => void;
-  unsubscribe: (symbols: string | string[], receiver: ITickReceiver) => void;
+  subscribe: (symbols: string[], receiver: ITickReceiver) => void;
+  unsubscribe: (symbols: string[], receiver: ITickReceiver) => void;
 }
 
 export interface IOrderEmitter {
   addReceiver: (receiver: IOrderReceiver) => void;
   removeReceiver: (receiver: IOrderReceiver) => void;
-  clearReceiver: () => void;
 }
 
 export interface ITraderProvider extends IProvider, IOrderEmitter {
