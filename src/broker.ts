@@ -14,6 +14,7 @@ import {
   IMarketProvider,
   IPlaceOrderRiskManager,
   IRuntimeEngine,
+  IStrategy,
   ITickReceiver,
   ITraderProvider,
 } from "./interfaces.js";
@@ -21,6 +22,7 @@ import {
 export class Broker implements IRuntimeEngine {
   private readonly trader: ITraderProvider;
   private readonly market: IMarketProvider;
+  private readonly strategies: IStrategy[] = [];
   private readonly placeOrderRiskManagers: IPlaceOrderRiskManager[] = [];
   private readonly cancelOrderRiskManagers: ICancelOrderRiskManager[] = [];
 
@@ -33,6 +35,10 @@ export class Broker implements IRuntimeEngine {
 
   stop() {}
 
+  addStrategy(strategy: IStrategy) {
+    this.strategies.push(strategy);
+  }
+
   addPlaceOrderRiskManager(riskMgr: IPlaceOrderRiskManager) {
     this.placeOrderRiskManagers.push(riskMgr);
   }
@@ -41,7 +47,11 @@ export class Broker implements IRuntimeEngine {
     this.cancelOrderRiskManagers.push(riskMgr);
   }
 
-  emitCustomRisk(reason: string) {}
+  emitCustomRisk(reason: string) {
+    this.strategies.forEach((strategy) =>
+      strategy.onRisk("custom-risk", reason),
+    );
+  }
 
   subscribe(symbols: string[], receiver: ITickReceiver) {
     this.market.subscribe(symbols, receiver);

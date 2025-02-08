@@ -45,6 +45,8 @@ export interface IRiskManagerReceiver {
 }
 
 export interface IRuntimeEngine {
+  addStrategy: (strategy: IStrategy) => void;
+
   addPlaceOrderRiskManager: (riskMgr: IPlaceOrderRiskManager) => void;
   addCancelOrderRiskManager: (riskMgr: ICancelOrderRiskManager) => void;
   emitCustomRisk: (reason: string) => void;
