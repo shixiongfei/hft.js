@@ -41,6 +41,8 @@ export class Broker implements IRuntimeEngine {
     this.cancelOrderRiskManagers.push(riskMgr);
   }
 
+  emitCustomRisk(reason: string) {}
+
   subscribe(symbols: string[], receiver: ITickReceiver) {
     this.market.subscribe(symbols, receiver);
   }

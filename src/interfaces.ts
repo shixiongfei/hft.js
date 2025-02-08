@@ -23,7 +23,7 @@ import {
   TradingAccount,
 } from "./typedef.js";
 
-export type RiskType = "place-order" | "cancel-order";
+export type RiskType = "place-order" | "cancel-order" | "custom-risk";
 
 export interface IPlaceOrderRiskManager {
   onPlaceOrder: (
@@ -41,12 +41,13 @@ export interface ICancelOrderRiskManager {
 }
 
 export interface IRiskManagerReceiver {
-  onRiskManager: (type: RiskType, reason?: string) => void;
+  onRisk: (type: RiskType, reason?: string) => void;
 }
 
 export interface IRuntimeEngine {
   addPlaceOrderRiskManager: (riskMgr: IPlaceOrderRiskManager) => void;
   addCancelOrderRiskManager: (riskMgr: ICancelOrderRiskManager) => void;
+  emitCustomRisk: (reason: string) => void;
 
   subscribe: (symbols: string[], receiver: ITickReceiver) => void;
   unsubscribe: (symbols: string[], receiver: ITickReceiver) => void;
