@@ -23,7 +23,31 @@ import {
   TradingAccount,
 } from "./typedef.js";
 
+export type RiskType = "place-order" | "cancel-order";
+
+export interface IPlaceOrderRiskManager {
+  onPlaceOrder: (
+    symbol: string,
+    offset: OffsetType,
+    side: SideType,
+    volume: number,
+    price: number,
+    flag: OrderFlag,
+  ) => boolean | string;
+}
+
+export interface ICancelOrderRiskManager {
+  onCancelOrder: (order: OrderData) => boolean | string;
+}
+
+export interface IRiskManagerReceiver {
+  onRiskManager: (type: RiskType, reason?: string) => void;
+}
+
 export interface IRuntimeEngine {
+  addPlaceOrderRiskManager: (riskMgr: IPlaceOrderRiskManager) => void;
+  addCancelOrderRiskManager: (riskMgr: ICancelOrderRiskManager) => void;
+
   subscribe: (symbols: string[], receiver: ITickReceiver) => void;
   unsubscribe: (symbols: string[], receiver: ITickReceiver) => void;
 }
@@ -40,7 +64,7 @@ export interface IOrderReceiver {
   onReject: (order: OrderData) => void;
 }
 
-export interface IStrategy extends IOrderReceiver {
+export interface IStrategy extends IRiskManagerReceiver, IOrderReceiver {
   onInit: (engine: IRuntimeEngine) => void;
   onDestroy: (engine: IRuntimeEngine) => void;
 }

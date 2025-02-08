@@ -10,7 +10,9 @@
  */
 
 import {
+  ICancelOrderRiskManager,
   IMarketProvider,
+  IPlaceOrderRiskManager,
   IRuntimeEngine,
   ITickReceiver,
   ITraderProvider,
@@ -19,6 +21,8 @@ import {
 export class Broker implements IRuntimeEngine {
   private readonly trader: ITraderProvider;
   private readonly market: IMarketProvider;
+  private readonly placeOrderRiskManagers: IPlaceOrderRiskManager[] = [];
+  private readonly cancelOrderRiskManagers: ICancelOrderRiskManager[] = [];
 
   constructor(trader: ITraderProvider, market: IMarketProvider) {
     this.trader = trader;
@@ -28,6 +32,14 @@ export class Broker implements IRuntimeEngine {
   start() {}
 
   stop() {}
+
+  addPlaceOrderRiskManager(riskMgr: IPlaceOrderRiskManager) {
+    this.placeOrderRiskManagers.push(riskMgr);
+  }
+
+  addCancelOrderRiskManager(riskMgr: ICancelOrderRiskManager) {
+    this.cancelOrderRiskManagers.push(riskMgr);
+  }
 
   subscribe(symbols: string[], receiver: ITickReceiver) {
     this.market.subscribe(symbols, receiver);
