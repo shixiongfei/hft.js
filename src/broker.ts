@@ -16,10 +16,14 @@ import {
   IRuntimeEngine,
   IStrategy,
   ITickReceiver,
+  ITickSubscriber,
+  ITickUnsubscriber,
   ITraderProvider,
 } from "./interfaces.js";
 
-export class Broker implements IRuntimeEngine {
+export class Broker
+  implements IRuntimeEngine, ITickSubscriber, ITickUnsubscriber
+{
   private readonly trader: ITraderProvider;
   private readonly market: IMarketProvider;
   private readonly strategies: IStrategy[] = [];

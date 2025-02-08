@@ -44,17 +44,6 @@ export interface IRiskManagerReceiver {
   onRisk: (type: RiskType, reason?: string) => void;
 }
 
-export interface IRuntimeEngine {
-  addStrategy: (strategy: IStrategy) => void;
-
-  addPlaceOrderRiskManager: (riskMgr: IPlaceOrderRiskManager) => void;
-  addCancelOrderRiskManager: (riskMgr: ICancelOrderRiskManager) => void;
-  emitCustomRisk: (reason: string) => void;
-
-  subscribe: (symbols: string[], receiver: ITickReceiver) => void;
-  unsubscribe: (symbols: string[], receiver: ITickReceiver) => void;
-}
-
 export interface ILifecycleListener {
   onInit: () => void;
   onDestroy: () => void;
@@ -67,13 +56,21 @@ export interface IOrderReceiver {
   onReject: (order: OrderData) => void;
 }
 
-export interface IStrategy extends IRiskManagerReceiver, IOrderReceiver {
-  onInit: (engine: IRuntimeEngine) => void;
-  onDestroy: (engine: IRuntimeEngine) => void;
-}
-
 export interface ITickReceiver {
   onTick: (tick: TickData) => void;
+}
+
+export interface ITickSubscriber {
+  subscribe: (symbols: string[], receiver: ITickReceiver) => void;
+}
+
+export interface ITickUnsubscriber {
+  unsubscribe: (symbols: string[], receiver: ITickReceiver) => void;
+}
+
+export interface IStrategy extends IRiskManagerReceiver, IOrderReceiver {
+  onInit: (subscriber: ITickSubscriber) => void;
+  onDestroy: (unsubscriber: ITickUnsubscriber) => void;
 }
 
 export interface ICommissionRateReceiver {
@@ -101,15 +98,15 @@ export interface IProvider {
   logout: (lifecycle: ILifecycleListener) => void;
 }
 
-export interface IMarketProvider extends IProvider {
-  subscribe: (symbols: string[], receiver: ITickReceiver) => void;
-  unsubscribe: (symbols: string[], receiver: ITickReceiver) => void;
-}
-
 export interface IOrderEmitter {
   addReceiver: (receiver: IOrderReceiver) => void;
   removeReceiver: (receiver: IOrderReceiver) => void;
 }
+
+export interface IMarketProvider
+  extends IProvider,
+    ITickSubscriber,
+    ITickUnsubscriber {}
 
 export interface ITraderProvider extends IProvider, IOrderEmitter {
   placeOrder: (
@@ -134,4 +131,11 @@ export interface ITraderProvider extends IProvider, IOrderEmitter {
   queryTradingAccount: (receiver: ITradingAccountReceiver) => void;
   queryPosition: (receiver: IPositionReceiver) => void;
   queryOrder: (receiver: IOrderReceiver) => void;
+}
+
+export interface IRuntimeEngine {
+  addStrategy: (strategy: IStrategy) => void;
+  addPlaceOrderRiskManager: (riskMgr: IPlaceOrderRiskManager) => void;
+  addCancelOrderRiskManager: (riskMgr: ICancelOrderRiskManager) => void;
+  emitCustomRisk: (reason: string) => void;
 }
