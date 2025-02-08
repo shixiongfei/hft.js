@@ -23,7 +23,7 @@ import {
   TradingAccount,
 } from "./typedef.js";
 
-export type RiskType = "place-order" | "cancel-order" | "custom-risk";
+export type RiskType = "place-order-risk" | "cancel-order-risk" | "custom-risk";
 
 export interface IPlaceOrderRiskManager {
   onPlaceOrder: (
