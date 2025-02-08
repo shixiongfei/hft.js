@@ -11,6 +11,7 @@
 
 import {
   ICancelOrderRiskManager,
+  ILifecycleListener,
   IMarketProvider,
   IPlaceOrderRiskManager,
   IRuntimeEngine,
@@ -26,6 +27,8 @@ export class Broker
 {
   private readonly trader: ITraderProvider;
   private readonly market: IMarketProvider;
+  private readonly traderLifecycle: ILifecycleListener;
+  private readonly marketLifecycle: ILifecycleListener;
   private readonly strategies: IStrategy[] = [];
   private readonly placeOrderRiskManagers: IPlaceOrderRiskManager[] = [];
   private readonly cancelOrderRiskManagers: ICancelOrderRiskManager[] = [];
@@ -33,11 +36,33 @@ export class Broker
   constructor(trader: ITraderProvider, market: IMarketProvider) {
     this.trader = trader;
     this.market = market;
+
+    this.marketLifecycle = {
+      onInit: () => {
+        this.strategies.forEach((strategy) => strategy.onInit(this));
+      },
+      onDestroy: () => {
+        this.strategies.forEach((strategy) => strategy.onDestroy(this));
+      },
+    };
+
+    this.traderLifecycle = {
+      onInit: () => {
+        this.market.login(this.marketLifecycle);
+      },
+      onDestroy: () => {
+        this.market.logout(this.marketLifecycle);
+      },
+    };
   }
 
-  start() {}
+  start() {
+    this.trader.login(this.traderLifecycle);
+  }
 
-  stop() {}
+  stop() {
+    this.trader.logout(this.traderLifecycle);
+  }
 
   addStrategy(strategy: IStrategy) {
     this.strategies.push(strategy);
