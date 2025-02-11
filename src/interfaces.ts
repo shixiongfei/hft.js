@@ -23,7 +23,7 @@ import {
   TradingAccount,
 } from "./typedef.js";
 
-export type RiskType = "place-order-risk" | "cancel-order-risk" | "custom-risk";
+export type RiskType = "place-order-risk" | "cancel-order-risk";
 
 export interface IPlaceOrderRiskManager {
   onPlaceOrder: (
@@ -56,6 +56,10 @@ export interface IOrderReceiver {
   onReject: (order: OrderData) => void;
 }
 
+export interface IOrdersReceiver {
+  onOrders: (orders: OrderData[]) => void;
+}
+
 export interface ITickReceiver {
   onTick: (tick: TickData) => void;
 }
@@ -85,12 +89,16 @@ export interface IInstrumentReceiver {
   onInstrument: (instrument: InstrumentData) => void;
 }
 
-export interface ITradingAccountReceiver {
-  onTradingAccount: (account: TradingAccount) => void;
+export interface IInstrumentsReceiver {
+  onInstruments: (instrument: InstrumentData[]) => void;
 }
 
-export interface IPositionReceiver {
-  onPosition: (position: PositionData) => void;
+export interface ITradingAccountsReceiver {
+  onTradingAccounts: (account: TradingAccount[]) => void;
+}
+
+export interface IPositionsReceiver {
+  onPositions: (position: PositionData[]) => void;
 }
 
 export interface IProvider {
@@ -103,22 +111,7 @@ export interface IOrderEmitter {
   removeReceiver: (receiver: IOrderReceiver) => void;
 }
 
-export interface IMarketProvider
-  extends IProvider,
-    ITickSubscriber,
-    ITickUnsubscriber {}
-
-export interface ITraderProvider extends IProvider, IOrderEmitter {
-  placeOrder: (
-    symbol: string,
-    offset: OffsetType,
-    side: SideType,
-    volume: number,
-    price: number,
-    flag: OrderFlag,
-  ) => string;
-
-  cancelOrder: (order: OrderData) => boolean;
+export interface IQueryApi {
   getTradingDay: () => number;
 
   queryCommissionRate: (
@@ -127,15 +120,48 @@ export interface ITraderProvider extends IProvider, IOrderEmitter {
   ) => void;
 
   queryMarginRate: (symbol: string, receiver: IMarginRateReceiver) => void;
-  queryInstrument: (receiver: IInstrumentReceiver) => void;
-  queryTradingAccount: (receiver: ITradingAccountReceiver) => void;
-  queryPosition: (receiver: IPositionReceiver) => void;
-  queryOrder: (receiver: IOrderReceiver) => void;
+  queryInstrument: (symbol: string, receiver: IInstrumentReceiver) => void;
+  queryInstruments: (receiver: IInstrumentsReceiver) => void;
+  queryTradingAccounts: (receiver: ITradingAccountsReceiver) => void;
+  queryPositions: (receiver: IPositionsReceiver) => void;
+  queryOrders: (receiver: IOrdersReceiver) => void;
 }
 
-export interface IRuntimeEngine {
+export interface IMarketProvider
+  extends IProvider,
+    ITickSubscriber,
+    ITickUnsubscriber {}
+
+export interface ITraderProvider extends IProvider, IOrderEmitter, IQueryApi {
+  placeOrder: (
+    symbol: string,
+    offset: OffsetType,
+    side: SideType,
+    volume: number,
+    price: number,
+    flag: OrderFlag,
+  ) => string | undefined;
+
+  cancelOrder: (order: OrderData) => boolean;
+}
+
+export interface IRuntimeEngine
+  extends IQueryApi,
+    ITickSubscriber,
+    ITickUnsubscriber {
   addStrategy: (strategy: IStrategy) => void;
   addPlaceOrderRiskManager: (riskMgr: IPlaceOrderRiskManager) => void;
   addCancelOrderRiskManager: (riskMgr: ICancelOrderRiskManager) => void;
-  emitCustomRisk: (reason: string) => void;
+
+  placeOrder: (
+    strategy: IStrategy,
+    symbol: string,
+    offset: OffsetType,
+    side: SideType,
+    volume: number,
+    price: number,
+    flag: OrderFlag,
+  ) => string | undefined;
+
+  cancelOrder: (strategy: IStrategy, order: OrderData) => boolean;
 }
