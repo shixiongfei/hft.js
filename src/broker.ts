@@ -94,15 +94,21 @@ export class Broker implements IRuntimeEngine, IOrderReceiver {
   }
 
   addStrategy(strategy: IStrategy) {
-    this.strategies.push(strategy);
+    if (!this.strategies.includes(strategy)) {
+      this.strategies.push(strategy);
+    }
   }
 
   addPlaceOrderRiskManager(riskMgr: IPlaceOrderRiskManager) {
-    this.placeOrderRiskManagers.push(riskMgr);
+    if (!this.placeOrderRiskManagers.includes(riskMgr)) {
+      this.placeOrderRiskManagers.push(riskMgr);
+    }
   }
 
   addCancelOrderRiskManager(riskMgr: ICancelOrderRiskManager) {
-    this.cancelOrderRiskManagers.push(riskMgr);
+    if (!this.cancelOrderRiskManagers.includes(riskMgr)) {
+      this.cancelOrderRiskManagers.push(riskMgr);
+    }
   }
 
   subscribe(symbols: string[], receiver: ITickReceiver) {

@@ -19,14 +19,26 @@ export type OrderBook = {
   bids: TapeSide;
 };
 
+export type PriceRange = {
+  upper: number;
+  lower: number;
+};
+
 export type TickData = {
   symbol: string;
   date: number;
   time: number;
+  preOpenInterest: number;
+  preClose: number;
   openInterest: number;
-  price: number;
+  openPrice: number;
+  highPrice: number;
+  lowPrice: number;
+  lastPrice: number;
   volume: number;
   amount: number;
+  limits: PriceRange;
+  bandings: PriceRange;
   orderBook: OrderBook;
 };
 
@@ -60,33 +72,6 @@ export type TapeData = {
   type: TapeType;
   direction: TapeDirection;
   status: TapeStatus;
-};
-
-export type PriceRange = {
-  upper: number;
-  lower: number;
-};
-
-export type PriceVolume = {
-  [price: number]: number;
-};
-
-export type MarketData = {
-  symbol: string;
-  tradingDay: number;
-  date: number;
-  time: number;
-  preOpenInterest: number;
-  preClose: number;
-  openInterest: number;
-  openPrice: number;
-  highPrice: number;
-  lowPrice: number;
-  lastTick: TickData;
-  buyVolume: PriceVolume;
-  sellVolume: PriceVolume;
-  limits: PriceRange;
-  bandings: PriceRange;
 };
 
 export type PositionCell = {
