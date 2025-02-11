@@ -18,17 +18,19 @@ import {
 } from "./typedef.js";
 
 const calcTapeType = (volumeDelta: number, interestDelta: number): TapeType => {
-  return interestDelta > 0
-    ? volumeDelta === interestDelta
-      ? "dual-open"
-      : "open"
-    : interestDelta < 0
-      ? volumeDelta + interestDelta === 0
-        ? "dual-close"
-        : "close"
-      : volumeDelta > 0
-        ? "turnover"
-        : "no-deal";
+  if (interestDelta > 0) {
+    return volumeDelta === interestDelta ? "dual-open" : "open";
+  }
+
+  if (interestDelta < 0) {
+    return volumeDelta + interestDelta === 0 ? "dual-close" : "close";
+  }
+
+  if (volumeDelta > 0) {
+    return "turnover";
+  }
+
+  return "no-deal";
 };
 
 const calcTapeDirection = (
