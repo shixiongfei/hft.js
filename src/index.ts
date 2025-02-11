@@ -6,7 +6,7 @@
  * Author: Xiongfei Shi <xiongfei.shi(a)icloud.com>
  * License: Apache-2.0
  *
- * https://github.com/hft-js/hft.js
+ * https://github.com/shixiongfei/hft.js
  */
 
 export * from "./typedef.js";

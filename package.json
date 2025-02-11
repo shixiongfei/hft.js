@@ -14,7 +14,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hft-js/hft.js.git"
+    "url": "git+https://github.com/shixiongfei/hft.js.git"
   },
   "keywords": [
     "hft",
@@ -27,9 +27,9 @@
   "author": "shixiongfei",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/hft-js/hft.js/issues"
+    "url": "https://github.com/shixiongfei/hft.js/issues"
   },
-  "homepage": "https://github.com/hft-js/hft.js#readme",
+  "homepage": "https://github.com/shixiongfei/hft.js#readme",
   "devDependencies": {
     "@types/node": "^22.12.0",
     "@typescript-eslint/eslint-plugin": "^8.22.0",
