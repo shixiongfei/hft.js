@@ -44,9 +44,15 @@ export interface IRiskManagerReceiver {
   onRisk: (type: RiskType, reason?: string) => void;
 }
 
-export interface ILifecycleListener {
-  onInit: () => void;
-  onDestroy: () => void;
+export type ErrorType = "";
+
+export interface IErrorReceiver {
+  onError: (error: ErrorType, message: string) => void;
+}
+
+export interface ILifecycleListener extends IErrorReceiver {
+  onOpen: () => void;
+  onClose: () => void;
 }
 
 export interface IOrderReceiver {
@@ -102,8 +108,8 @@ export interface IPositionsReceiver {
 }
 
 export interface IProvider {
-  login: (lifecycle: ILifecycleListener) => boolean;
-  logout: (lifecycle: ILifecycleListener) => void;
+  open: (lifecycle: ILifecycleListener) => boolean;
+  close: (lifecycle: ILifecycleListener) => void;
 }
 
 export interface IOrderEmitter {

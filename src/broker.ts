@@ -19,6 +19,7 @@ import {
 import {
   ICancelOrderRiskManager,
   ICommissionRateReceiver,
+  IErrorReceiver,
   IInstrumentReceiver,
   IInstrumentsReceiver,
   ILifecycleListener,
@@ -44,25 +45,39 @@ export class Broker implements IRuntimeEngine, IOrderReceiver {
   private readonly placeOrderRiskManagers: IPlaceOrderRiskManager[] = [];
   private readonly cancelOrderRiskManagers: ICancelOrderRiskManager[] = [];
 
-  constructor(trader: ITraderProvider, market: IMarketProvider) {
+  constructor(
+    trader: ITraderProvider,
+    market: IMarketProvider,
+    errorReceiver?: IErrorReceiver,
+  ) {
     this.trader = trader;
     this.market = market;
 
     this.marketLifecycle = {
-      onInit: () => {
+      onOpen: () => {
         this.strategies.forEach((strategy) => strategy.onInit(this));
       },
-      onDestroy: () => {
+      onClose: () => {
         this.strategies.forEach((strategy) => strategy.onDestroy(this));
+      },
+      onError: (error, message) => {
+        if (errorReceiver) {
+          errorReceiver.onError(error, message);
+        }
       },
     };
 
     this.traderLifecycle = {
-      onInit: () => {
-        this.market.login(this.marketLifecycle);
+      onOpen: () => {
+        this.market.open(this.marketLifecycle);
       },
-      onDestroy: () => {
-        this.market.logout(this.marketLifecycle);
+      onClose: () => {
+        this.market.close(this.marketLifecycle);
+      },
+      onError: (error, message) => {
+        if (errorReceiver) {
+          errorReceiver.onError(error, message);
+        }
       },
     };
 
@@ -86,11 +101,11 @@ export class Broker implements IRuntimeEngine, IOrderReceiver {
   }
 
   start() {
-    return this.trader.login(this.traderLifecycle);
+    return this.trader.open(this.traderLifecycle);
   }
 
   stop() {
-    return this.trader.logout(this.traderLifecycle);
+    return this.trader.close(this.traderLifecycle);
   }
 
   addStrategy(strategy: IStrategy) {
@@ -206,4 +221,5 @@ export class Broker implements IRuntimeEngine, IOrderReceiver {
 export const createBroker = (
   trader: ITraderProvider,
   market: IMarketProvider,
-) => new Broker(trader, market);
+  errorReceiver?: IErrorReceiver,
+) => new Broker(trader, market, errorReceiver);

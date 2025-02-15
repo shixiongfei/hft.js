@@ -28,6 +28,7 @@ export type TickData = {
   symbol: string;
   date: number;
   time: number;
+  tradingDay: number;
   preOpenInterest: number;
   preClose: number;
   openInterest: number;
