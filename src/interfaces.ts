@@ -44,7 +44,7 @@ export interface IRiskManagerReceiver {
   onRisk: (type: RiskType, reason?: string) => void;
 }
 
-export type ErrorType = "";
+export type ErrorType = "auth-error";
 
 export interface IErrorReceiver {
   onError: (error: ErrorType, message: string) => void;
