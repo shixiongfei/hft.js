@@ -133,10 +133,17 @@ export interface IQueryApi {
   queryOrders: (receiver: IOrdersReceiver) => void;
 }
 
+export interface IMarketRecorder {
+  onMarketData: <T>(marketData: T) => void;
+}
+
 export interface IMarketProvider
   extends IProvider,
     ITickSubscriber,
-    ITickUnsubscriber {}
+    ITickUnsubscriber {
+  addRecorder: (recorder: IMarketRecorder) => void;
+  removeRecorder: (recorder: IMarketRecorder) => void;
+}
 
 export interface ITraderProvider extends IProvider, IOrderEmitter, IQueryApi {
   placeOrder: (

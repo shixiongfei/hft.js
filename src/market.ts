@@ -15,6 +15,7 @@ import { OrderBook, TickData } from "./typedef.js";
 import {
   ILifecycleListener,
   IMarketProvider,
+  IMarketRecorder,
   ITickReceiver,
 } from "./interfaces.js";
 
@@ -23,8 +24,9 @@ const isValidVolume = (x: number) => x !== Number.MAX_VALUE && x !== 0;
 
 export class Market extends CTPProvider implements IMarketProvider {
   private marketApi?: ctp.MarketData;
-  private symbols: { [instrumentId: string]: string } = {};
-  private subscribers: { [instrumentId: string]: ITickReceiver[] } = {};
+  private readonly symbols: { [instrumentId: string]: string };
+  private readonly subscribers: { [instrumentId: string]: ITickReceiver[] };
+  private readonly recorders: IMarketRecorder[];
 
   constructor(
     flowMdPath: string,
@@ -32,6 +34,9 @@ export class Market extends CTPProvider implements IMarketProvider {
     userInfo: UserInfo,
   ) {
     super(flowMdPath, frontMdAddrs, userInfo);
+    this.symbols = {};
+    this.subscribers = {};
+    this.recorders = [];
   }
 
   open(lifecycle: ILifecycleListener) {
@@ -68,6 +73,10 @@ export class Market extends CTPProvider implements IMarketProvider {
     this.marketApi.on<ctp.DepthMarketDataField>(
       ctp.MarketDataEvent.RtnDepthMarketData,
       (depthMarketData) => {
+        this.recorders.forEach((recorder) => {
+          recorder.onMarketData(depthMarketData);
+        });
+
         const instrumentId = depthMarketData.InstrumentID;
         const receivers = this.subscribers[instrumentId];
 
@@ -267,6 +276,24 @@ export class Market extends CTPProvider implements IMarketProvider {
       this._withRetry(() =>
         this.marketApi!.unsubscribeMarketData(instrumentIds),
       );
+    }
+  }
+
+  addRecorder(recorder: IMarketRecorder) {
+    if (!this.recorders.includes(recorder)) {
+      this.recorders.push(recorder);
+    }
+  }
+
+  removeRecorder(recorder: IMarketRecorder) {
+    if (this.recorders.length > 0) {
+      const index = this.recorders.indexOf(recorder);
+
+      if (index < 0) {
+        return;
+      }
+
+      this.recorders.splice(index, 1);
     }
   }
 }

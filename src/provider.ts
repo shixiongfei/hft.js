@@ -51,6 +51,6 @@ export class CTPProvider {
   }
 
   protected _symbolToInstrumentId(symbol: string) {
-    return symbol;
+    return symbol.split(".")[0];
   }
 }
