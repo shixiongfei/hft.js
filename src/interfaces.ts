@@ -71,11 +71,11 @@ export interface ITickReceiver {
 }
 
 export interface ITickSubscriber {
-  subscribe: (symbols: string[], receiver: ITickReceiver) => void;
+  subscribe: (symbols: string[], receiver?: ITickReceiver) => void;
 }
 
 export interface ITickUnsubscriber {
-  unsubscribe: (symbols: string[], receiver: ITickReceiver) => void;
+  unsubscribe: (symbols: string[], receiver?: ITickReceiver) => void;
 }
 
 export interface IStrategy extends IRiskManagerReceiver, IOrderReceiver {
@@ -141,8 +141,7 @@ export interface IMarketProvider
   extends IProvider,
     ITickSubscriber,
     ITickUnsubscriber {
-  addRecorder: (recorder: IMarketRecorder) => void;
-  removeRecorder: (recorder: IMarketRecorder) => void;
+  setRecorder: (recorder: IMarketRecorder) => void;
 }
 
 export interface ITraderProvider extends IProvider, IOrderEmitter, IQueryApi {

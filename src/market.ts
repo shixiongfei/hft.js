@@ -24,9 +24,10 @@ const isValidVolume = (x: number) => x !== Number.MAX_VALUE && x !== 0;
 
 export class Market extends CTPProvider implements IMarketProvider {
   private marketApi?: ctp.MarketData;
+  private recorder?: IMarketRecorder;
+  private recordings: Set<string>;
   private readonly symbols: { [instrumentId: string]: string };
   private readonly subscribers: { [instrumentId: string]: ITickReceiver[] };
-  private readonly recorders: IMarketRecorder[];
 
   constructor(
     flowMdPath: string,
@@ -34,9 +35,13 @@ export class Market extends CTPProvider implements IMarketProvider {
     userInfo: UserInfo,
   ) {
     super(flowMdPath, frontMdAddrs, userInfo);
+    this.recordings = new Set();
     this.symbols = {};
     this.subscribers = {};
-    this.recorders = [];
+  }
+
+  setRecorder(recorder: IMarketRecorder) {
+    this.recorder = recorder;
   }
 
   open(lifecycle: ILifecycleListener) {
@@ -63,11 +68,14 @@ export class Market extends CTPProvider implements IMarketProvider {
           return;
         }
 
-        const instrumentIds = Object.keys(this.subscribers);
+        const instrumentIds = new Set([
+          ...Array.from(this.recordings),
+          ...Object.keys(this.subscribers),
+        ]);
 
-        if (instrumentIds.length > 0) {
+        if (instrumentIds.size > 0) {
           this._withRetry(() =>
-            this.marketApi!.subscribeMarketData(instrumentIds),
+            this.marketApi!.subscribeMarketData(Array.from(instrumentIds)),
           );
         }
 
@@ -81,11 +89,12 @@ export class Market extends CTPProvider implements IMarketProvider {
     this.marketApi.on<ctp.DepthMarketDataField>(
       ctp.MarketDataEvent.RtnDepthMarketData,
       (depthMarketData) => {
-        this.recorders.forEach((recorder) => {
-          recorder.onMarketData(depthMarketData);
-        });
-
         const instrumentId = depthMarketData.InstrumentID;
+
+        if (this.recorder && this.recordings.has(instrumentId)) {
+          this.recorder.onMarketData(depthMarketData);
+        }
+
         const receivers = this.subscribers[instrumentId];
 
         if (!receivers || receivers.length === 0) {
@@ -227,11 +236,23 @@ export class Market extends CTPProvider implements IMarketProvider {
     lifecycle.onClose();
   }
 
-  subscribe(symbols: string[], receiver: ITickReceiver) {
-    const instrumentIds: string[] = [];
+  subscribe(symbols: string[], receiver?: ITickReceiver) {
+    const instrumentIds = new Set<string>();
 
     symbols.forEach((symbol) => {
       const instrumentId = this._symbolToInstrumentId(symbol);
+
+      if (!receiver) {
+        if (!this.recordings.has(instrumentId)) {
+          this.recordings.add(instrumentId);
+
+          if (!(instrumentId in this.subscribers)) {
+            instrumentIds.add(instrumentId);
+          }
+        }
+
+        return;
+      }
 
       if (instrumentId in this.subscribers) {
         const receivers = this.subscribers[instrumentId];
@@ -242,20 +263,37 @@ export class Market extends CTPProvider implements IMarketProvider {
       } else {
         this.subscribers[instrumentId] = [receiver];
         this.symbols[instrumentId] = symbol;
-        instrumentIds.push(instrumentId);
+
+        if (!this.recordings.has(instrumentId)) {
+          instrumentIds.add(instrumentId);
+        }
       }
     });
 
-    if (instrumentIds.length > 0 && this.marketApi) {
-      this._withRetry(() => this.marketApi!.subscribeMarketData(instrumentIds));
+    if (instrumentIds.size > 0 && this.marketApi) {
+      this._withRetry(() =>
+        this.marketApi!.subscribeMarketData(Array.from(instrumentIds)),
+      );
     }
   }
 
-  unsubscribe(symbols: string[], receiver: ITickReceiver) {
-    const instrumentIds: string[] = [];
+  unsubscribe(symbols: string[], receiver?: ITickReceiver) {
+    const instrumentIds = new Set<string>();
 
     symbols.forEach((symbol) => {
       const instrumentId = this._symbolToInstrumentId(symbol);
+
+      if (!receiver) {
+        if (this.recordings.has(instrumentId)) {
+          this.recordings.delete(instrumentId);
+
+          if (!(instrumentId in this.subscribers)) {
+            instrumentIds.add(instrumentId);
+          }
+        }
+
+        return;
+      }
 
       const receivers = this.subscribers[instrumentId];
 
@@ -276,32 +314,17 @@ export class Market extends CTPProvider implements IMarketProvider {
       if (receivers.length === 0) {
         delete this.subscribers[instrumentId];
         delete this.symbols[instrumentId];
-        instrumentIds.push(instrumentId);
+
+        if (!this.recordings.has(instrumentId)) {
+          instrumentIds.add(instrumentId);
+        }
       }
     });
 
-    if (instrumentIds.length > 0 && this.marketApi) {
+    if (instrumentIds.size > 0 && this.marketApi) {
       this._withRetry(() =>
-        this.marketApi!.unsubscribeMarketData(instrumentIds),
+        this.marketApi!.unsubscribeMarketData(Array.from(instrumentIds)),
       );
-    }
-  }
-
-  addRecorder(recorder: IMarketRecorder) {
-    if (!this.recorders.includes(recorder)) {
-      this.recorders.push(recorder);
-    }
-  }
-
-  removeRecorder(recorder: IMarketRecorder) {
-    if (this.recorders.length > 0) {
-      const index = this.recorders.indexOf(recorder);
-
-      if (index < 0) {
-        return;
-      }
-
-      this.recorders.splice(index, 1);
     }
   }
 }
