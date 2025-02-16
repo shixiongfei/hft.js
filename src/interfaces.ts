@@ -186,6 +186,8 @@ export interface IRuntimeEngine
     ITickSubscriber,
     ITickUnsubscriber {
   addStrategy: (strategy: IStrategy) => void;
+  removeStrategy: (strategy: IStrategy) => void;
+
   addPlaceOrderRiskManager: (riskMgr: IPlaceOrderRiskManager) => void;
   addCancelOrderRiskManager: (riskMgr: ICancelOrderRiskManager) => void;
 

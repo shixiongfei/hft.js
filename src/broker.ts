@@ -27,7 +27,6 @@ import {
   ILifecycleListener,
   IMarginRateReceiver,
   IMarketProvider,
-  IOrderReceiver,
   IOrdersReceiver,
   IPlaceOrderRiskManager,
   IPositionsReceiver,
@@ -39,7 +38,7 @@ import {
   IPlaceOrderResultReceiver,
 } from "./interfaces.js";
 
-export class Broker implements IRuntimeEngine, IOrderReceiver {
+export class Broker implements IRuntimeEngine {
   private readonly trader: ITraderProvider;
   private readonly market: IMarketProvider;
   private readonly traderLifecycle: ILifecycleListener;
@@ -83,24 +82,6 @@ export class Broker implements IRuntimeEngine, IOrderReceiver {
         }
       },
     };
-
-    this.trader.addReceiver(this);
-  }
-
-  onEntrust(order: OrderData) {
-    this.strategies.forEach((strategy) => strategy.onEntrust(order));
-  }
-
-  onTrade(order: OrderData, trade: TradeData) {
-    this.strategies.forEach((strategy) => strategy.onTrade(order, trade));
-  }
-
-  onCancel(order: OrderData) {
-    this.strategies.forEach((strategy) => strategy.onCancel(order));
-  }
-
-  onReject(order: OrderData) {
-    this.strategies.forEach((strategy) => strategy.onReject(order));
   }
 
   start() {
@@ -114,7 +95,19 @@ export class Broker implements IRuntimeEngine, IOrderReceiver {
   addStrategy(strategy: IStrategy) {
     if (!this.strategies.includes(strategy)) {
       this.strategies.push(strategy);
+      this.trader.addReceiver(strategy);
     }
+  }
+
+  removeStrategy(strategy: IStrategy) {
+    const index = this.strategies.indexOf(strategy);
+
+    if (index < 0) {
+      return;
+    }
+
+    this.strategies.splice(index, 1);
+    this.trader.removeReceiver(strategy);
   }
 
   addPlaceOrderRiskManager(riskMgr: IPlaceOrderRiskManager) {
