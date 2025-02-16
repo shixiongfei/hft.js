@@ -10,12 +10,20 @@
  */
 
 import ctp from "napi-ctp";
+import { CTPProvider, UserInfo } from "./provider.js";
+import {
+  OffsetType,
+  OrderData,
+  OrderFlag,
+  OrderStatus,
+  SideType,
+  TradeData,
+} from "./typedef.js";
 import {
   ILifecycleListener,
   IOrderReceiver,
   ITraderProvider,
 } from "./interfaces.js";
-import { CTPProvider, UserInfo } from "./provider.js";
 
 export class Trader extends CTPProvider implements ITraderProvider {
   private traderApi?: ctp.Trader;
@@ -171,6 +179,70 @@ export class Trader extends CTPProvider implements ITraderProvider {
       },
     );
 
+    this.traderApi.on<ctp.OrderField>(ctp.TraderEvent.RtnOrder, (order) => {
+      const orderId = this._calcOrderId(order);
+      const current = this.orders.get(orderId);
+
+      if (current) {
+        if (
+          order.OrderSubmitStatus === current.OrderSubmitStatus &&
+          order.OrderStatus === current.OrderStatus
+        ) {
+          return;
+        }
+      }
+
+      this.orders.set(orderId, order);
+
+      switch (this._calcOrderStatus(order)) {
+        case "submitted":
+          {
+            const orderData = this._toOrderData(order);
+            this.receivers.forEach((receiver) => receiver.onEntrust(orderData));
+          }
+          break;
+
+        case "canceled":
+          {
+            const orderData = this._toOrderData(order);
+            this.receivers.forEach((receiver) => receiver.onCancel(orderData));
+          }
+          break;
+
+        case "rejected":
+          {
+            const orderData = this._toOrderData(order);
+            this.receivers.forEach((receiver) => receiver.onReject(orderData));
+          }
+          break;
+
+        default:
+          break;
+      }
+    });
+
+    this.traderApi.on<ctp.TradeField>(ctp.TraderEvent.RtnTrade, (trade) => {
+      const orderId = this._calcOrderId(trade);
+      const trades = this.trades.get(orderId);
+
+      if (trades) {
+        trades.push(trade);
+      } else {
+        this.trades.set(orderId, [trade]);
+      }
+
+      const order = this.orders.get(orderId);
+
+      if (order) {
+        const orderData = this._toOrderData(order);
+        const tradeData = this._toTradeData(trade);
+
+        this.receivers.forEach((receiver) =>
+          receiver.onTrade(orderData, tradeData),
+        );
+      }
+    });
+
     return true;
   }
 
@@ -208,6 +280,95 @@ export class Trader extends CTPProvider implements ITraderProvider {
   private _calcOrderId(orderOrTrade: ctp.OrderField | ctp.TradeField) {
     const { ExchangeID, TraderID, OrderLocalID } = orderOrTrade;
     return `${ExchangeID}:${TraderID}:${OrderLocalID}`;
+  }
+
+  private _calcReceiptId(order: ctp.OrderField | ctp.InputOrderActionField) {
+    return `${order.FrontID}:${order.SessionID}:${parseInt(order.OrderRef)}`;
+  }
+
+  private _calcOrderStatus(order: ctp.OrderField): OrderStatus {
+    switch (order.OrderStatus) {
+      case ctp.OrderStatusType.Unknown:
+        return "submitted";
+
+      case ctp.OrderStatusType.AllTraded:
+        return "filled";
+
+      case ctp.OrderStatusType.Canceled:
+        switch (order.OrderSubmitStatus) {
+          case ctp.OrderSubmitStatusType.InsertRejected:
+          case ctp.OrderSubmitStatusType.CancelRejected:
+          case ctp.OrderSubmitStatusType.ModifyRejected:
+            return "rejected";
+          default:
+            return "canceled";
+        }
+
+      default:
+        return "partially-filled";
+    }
+  }
+
+  private _calcOrderFlag(orderPriceType: ctp.OrderPriceTypeType): OrderFlag {
+    switch (orderPriceType) {
+      case ctp.OrderPriceTypeType.LimitPrice:
+        return "limit";
+      default:
+        return "market";
+    }
+  }
+
+  private _calcSideType(direction: ctp.DirectionType): SideType {
+    switch (direction) {
+      case ctp.DirectionType.Buy:
+        return "long";
+      case ctp.DirectionType.Sell:
+        return "short";
+    }
+  }
+
+  private _calcOffsetType(offset: ctp.OffsetFlagType): OffsetType {
+    switch (offset) {
+      case ctp.OffsetFlagType.Open:
+        return "open";
+      case ctp.OffsetFlagType.CloseToday:
+        return "close-today";
+      default:
+        return "close";
+    }
+  }
+
+  private _toTradeData(trade: ctp.TradeField): TradeData {
+    return Object.freeze({
+      id: trade.TradeID,
+      date: parseInt(trade.TradeDate),
+      time: this._parseTime(trade.TradeTime),
+      price: trade.Price,
+      volume: trade.Volume,
+    });
+  }
+
+  private _toOrderData(order: ctp.OrderField): OrderData {
+    const orderId = this._calcOrderId(order);
+    const trades = this.trades.get(orderId) ?? [];
+
+    return Object.freeze({
+      id: orderId,
+      receiptId: this._calcReceiptId(order),
+      symbol: `${order.InstrumentID}.${order.ExchangeID}`,
+      date: parseInt(order.InsertDate),
+      time: this._parseTime(order.InsertTime),
+      flag: this._calcOrderFlag(order.OrderPriceType),
+      side: this._calcSideType(order.Direction),
+      offset: this._calcOffsetType(order.CombOffsetFlag as ctp.OffsetFlagType),
+      price: order.LimitPrice,
+      volume: order.VolumeTotalOriginal,
+      traded: order.VolumeTotalOriginal - order.VolumeTotal,
+      status: this._calcOrderStatus(order),
+      trades: trades.map(this._toTradeData),
+      cancelTime:
+        order.CancelTime !== "" ? this._parseTime(order.CancelTime) : undefined,
+    });
   }
 }
 
