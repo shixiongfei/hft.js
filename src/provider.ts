@@ -10,7 +10,10 @@
  */
 
 import ctp from "napi-ctp";
-import { ErrorType, ILifecycleListener } from "./interfaces.js";
+import { ILifecycleListener } from "./interfaces.js";
+import { ProviderErrors } from "./errors.js";
+
+export type ProviderErrorType = ProviderErrors["code"];
 
 export type UserInfo = {
   BrokerID: string;
@@ -66,15 +69,17 @@ export class CTPProvider {
   protected _isErrorResp(
     lifecycle: ILifecycleListener,
     options: ctp.CallbackOptions,
-    error: ErrorType,
+    error: ProviderErrorType,
   ) {
     if (!options.rspInfo) {
       return false;
     }
 
-    const message = `${options.rspInfo.ErrorID}:${options.rspInfo.ErrorMsg}`;
+    lifecycle.onError({
+      code: error,
+      message: `${options.rspInfo.ErrorID}:${options.rspInfo.ErrorMsg}`,
+    });
 
-    lifecycle.onError(error, message);
     return true;
   }
 }

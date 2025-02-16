@@ -9,6 +9,7 @@
  * https://github.com/shixiongfei/hft.js
  */
 
+import { Errors } from "./errors.js";
 import {
   CommissionRate,
   InstrumentData,
@@ -45,14 +46,8 @@ export interface IRiskManagerReceiver {
   onRisk: (type: RiskType, reason?: string) => void;
 }
 
-export type ErrorType =
-  | "login-error"
-  | "query-order-error"
-  | "query-trade-error"
-  | "query-instrument-error";
-
 export interface IErrorReceiver {
-  onError: (error: ErrorType, message: string) => void;
+  onError: (error: Errors) => void;
 }
 
 export interface ILifecycleListener extends IErrorReceiver {

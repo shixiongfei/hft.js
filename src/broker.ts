@@ -9,6 +9,7 @@
  * https://github.com/shixiongfei/hft.js
  */
 
+import { Errors } from "./errors.js";
 import {
   OffsetType,
   OrderData,
@@ -62,9 +63,9 @@ export class Broker implements IRuntimeEngine, IOrderReceiver {
       onClose: () => {
         this.strategies.forEach((strategy) => strategy.onDestroy(this));
       },
-      onError: (error, message) => {
+      onError: (error: Errors) => {
         if (errorReceiver) {
-          errorReceiver.onError(error, message);
+          errorReceiver.onError(error);
         }
       },
     };
@@ -76,9 +77,9 @@ export class Broker implements IRuntimeEngine, IOrderReceiver {
       onClose: () => {
         this.market.close(this.marketLifecycle);
       },
-      onError: (error, message) => {
+      onError: (error: Errors) => {
         if (errorReceiver) {
-          errorReceiver.onError(error, message);
+          errorReceiver.onError(error);
         }
       },
     };
