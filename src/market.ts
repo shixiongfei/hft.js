@@ -60,11 +60,7 @@ export class Market extends CTPProvider implements IMarketProvider {
     this.marketApi.on<ctp.RspUserLoginField>(
       ctp.MarketDataEvent.RspUserLogin,
       (_, options) => {
-        if (options.rspInfo) {
-          lifecycle.onError(
-            "auth-error",
-            `${options.rspInfo.ErrorID}:${options.rspInfo.ErrorMsg}`,
-          );
+        if (this._isErrorResp(lifecycle, options, "login-error")) {
           return;
         }
 

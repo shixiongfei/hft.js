@@ -10,8 +10,17 @@
  */
 
 import ctp from "napi-ctp";
+import { ErrorType, ILifecycleListener } from "./interfaces.js";
 
-export type UserInfo = {};
+export type UserInfo = {
+  BrokerID: string;
+  UserID: string;
+  Password: string;
+  InvestorID: string;
+  UserProductInfo: string;
+  AuthCode: string;
+  AppID: string;
+};
 
 export class CTPProvider {
   protected readonly flowPath: string;
@@ -52,5 +61,20 @@ export class CTPProvider {
 
   protected _symbolToInstrumentId(symbol: string) {
     return symbol.split(".")[0];
+  }
+
+  protected _isErrorResp(
+    lifecycle: ILifecycleListener,
+    options: ctp.CallbackOptions,
+    error: ErrorType,
+  ) {
+    if (!options.rspInfo) {
+      return false;
+    }
+
+    const message = `${options.rspInfo.ErrorID}:${options.rspInfo.ErrorMsg}`;
+
+    lifecycle.onError(error, message);
+    return true;
   }
 }
