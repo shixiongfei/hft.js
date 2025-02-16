@@ -25,7 +25,7 @@ const isValidVolume = (x: number) => x !== Number.MAX_VALUE && x !== 0;
 export class Market extends CTPProvider implements IMarketProvider {
   private marketApi?: ctp.MarketData;
   private recorder?: IMarketRecorder;
-  private recordings: Set<string>;
+  private readonly recordings: Set<string>;
   private readonly symbols: { [instrumentId: string]: string };
   private readonly subscribers: { [instrumentId: string]: ITickReceiver[] };
 
@@ -247,6 +247,7 @@ export class Market extends CTPProvider implements IMarketProvider {
           this.recordings.add(instrumentId);
 
           if (!(instrumentId in this.subscribers)) {
+            this.symbols[instrumentId] = symbol;
             instrumentIds.add(instrumentId);
           }
         }
@@ -262,9 +263,9 @@ export class Market extends CTPProvider implements IMarketProvider {
         }
       } else {
         this.subscribers[instrumentId] = [receiver];
-        this.symbols[instrumentId] = symbol;
 
         if (!this.recordings.has(instrumentId)) {
+          this.symbols[instrumentId] = symbol;
           instrumentIds.add(instrumentId);
         }
       }
@@ -288,6 +289,7 @@ export class Market extends CTPProvider implements IMarketProvider {
           this.recordings.delete(instrumentId);
 
           if (!(instrumentId in this.subscribers)) {
+            delete this.symbols[instrumentId];
             instrumentIds.add(instrumentId);
           }
         }
@@ -313,9 +315,9 @@ export class Market extends CTPProvider implements IMarketProvider {
 
       if (receivers.length === 0) {
         delete this.subscribers[instrumentId];
-        delete this.symbols[instrumentId];
 
         if (!this.recordings.has(instrumentId)) {
+          delete this.symbols[instrumentId];
           instrumentIds.add(instrumentId);
         }
       }
