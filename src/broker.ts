@@ -9,7 +9,6 @@
  * https://github.com/shixiongfei/hft.js
  */
 
-import { Errors } from "./errors.js";
 import {
   OffsetType,
   OrderData,
@@ -19,6 +18,7 @@ import {
 } from "./typedef.js";
 import {
   CancelOrderResultCallback,
+  ErrorType,
   ICancelOrderRiskManager,
   ICommissionRateReceiver,
   IErrorReceiver,
@@ -63,9 +63,9 @@ export class Broker implements IRuntimeEngine, IOrderReceiver {
       onClose: () => {
         this.strategies.forEach((strategy) => strategy.onDestroy(this));
       },
-      onError: (error: Errors) => {
+      onError: (error: ErrorType, message: string) => {
         if (errorReceiver) {
-          errorReceiver.onError(error);
+          errorReceiver.onError(error, message);
         }
       },
     };
@@ -77,9 +77,9 @@ export class Broker implements IRuntimeEngine, IOrderReceiver {
       onClose: () => {
         this.market.close(this.marketLifecycle);
       },
-      onError: (error: Errors) => {
+      onError: (error: ErrorType, message: string) => {
         if (errorReceiver) {
-          errorReceiver.onError(error);
+          errorReceiver.onError(error, message);
         }
       },
     };
