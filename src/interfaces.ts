@@ -17,6 +17,7 @@ import {
   OrderData,
   OrderFlag,
   PositionData,
+  ProductType,
   SideType,
   TickData,
   TradeData,
@@ -44,7 +45,11 @@ export interface IRiskManagerReceiver {
   onRisk: (type: RiskType, reason?: string) => void;
 }
 
-export type ErrorType = "auth-error";
+export type ErrorType =
+  | "login-error"
+  | "query-order-error"
+  | "query-trade-error"
+  | "query-instrument-error";
 
 export interface IErrorReceiver {
   onError: (error: ErrorType, message: string) => void;
@@ -127,7 +132,12 @@ export interface IQueryApi {
 
   queryMarginRate: (symbol: string, receiver: IMarginRateReceiver) => void;
   queryInstrument: (symbol: string, receiver: IInstrumentReceiver) => void;
-  queryInstruments: (receiver: IInstrumentsReceiver) => void;
+
+  queryInstruments: (
+    receiver: IInstrumentsReceiver,
+    type?: ProductType,
+  ) => void;
+
   queryTradingAccounts: (receiver: ITradingAccountsReceiver) => void;
   queryPositions: (receiver: IPositionsReceiver) => void;
   queryOrders: (receiver: IOrdersReceiver) => void;
@@ -141,8 +151,18 @@ export interface IMarketProvider
   extends IProvider,
     ITickSubscriber,
     ITickUnsubscriber {
-  setRecorder: (recorder: IMarketRecorder) => void;
+  setRecorder: (recorder?: IMarketRecorder) => void;
 }
+
+export type PlaceOrderResultCallback = (
+  receiptId: string | undefined,
+  reason?: string,
+) => void;
+
+export type CancelOrderResultCallback = (
+  result: boolean,
+  reason?: string,
+) => void;
 
 export interface ITraderProvider extends IProvider, IOrderEmitter, IQueryApi {
   placeOrder: (
@@ -152,9 +172,10 @@ export interface ITraderProvider extends IProvider, IOrderEmitter, IQueryApi {
     volume: number,
     price: number,
     flag: OrderFlag,
-  ) => string | undefined;
+    onResult?: PlaceOrderResultCallback,
+  ) => void;
 
-  cancelOrder: (order: OrderData) => boolean;
+  cancelOrder: (order: OrderData, onResult?: CancelOrderResultCallback) => void;
 }
 
 export interface IRuntimeEngine
@@ -173,7 +194,12 @@ export interface IRuntimeEngine
     volume: number,
     price: number,
     flag: OrderFlag,
-  ) => string | undefined;
+    onResult?: PlaceOrderResultCallback,
+  ) => void;
 
-  cancelOrder: (strategy: IStrategy, order: OrderData) => boolean;
+  cancelOrder: (
+    strategy: IStrategy,
+    order: OrderData,
+    onResult?: CancelOrderResultCallback,
+  ) => void;
 }

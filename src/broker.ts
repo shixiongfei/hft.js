@@ -17,6 +17,7 @@ import {
   TradeData,
 } from "./typedef.js";
 import {
+  CancelOrderResultCallback,
   ICancelOrderRiskManager,
   ICommissionRateReceiver,
   IErrorReceiver,
@@ -34,6 +35,7 @@ import {
   ITickReceiver,
   ITraderProvider,
   ITradingAccountsReceiver,
+  PlaceOrderResultCallback,
 } from "./interfaces.js";
 
 export class Broker implements IRuntimeEngine, IOrderReceiver {
@@ -126,11 +128,11 @@ export class Broker implements IRuntimeEngine, IOrderReceiver {
     }
   }
 
-  subscribe(symbols: string[], receiver: ITickReceiver) {
+  subscribe(symbols: string[], receiver?: ITickReceiver) {
     return this.market.subscribe(symbols, receiver);
   }
 
-  unsubscribe(symbols: string[], receiver: ITickReceiver) {
+  unsubscribe(symbols: string[], receiver?: ITickReceiver) {
     return this.market.unsubscribe(symbols, receiver);
   }
 
@@ -142,6 +144,7 @@ export class Broker implements IRuntimeEngine, IOrderReceiver {
     volume: number,
     price: number,
     flag: OrderFlag,
+    onResult?: PlaceOrderResultCallback,
   ) {
     for (const placeOrderRiskManager of this.placeOrderRiskManagers) {
       const result = placeOrderRiskManager.onPlaceOrder(
@@ -156,33 +159,65 @@ export class Broker implements IRuntimeEngine, IOrderReceiver {
       if (typeof result === "boolean") {
         if (!result) {
           strategy.onRisk("place-order-risk");
-          return undefined;
+
+          if (onResult) {
+            onResult(undefined, "risk rejected");
+          }
+
+          return;
         }
       } else {
         strategy.onRisk("place-order-risk", result);
-        return undefined;
+
+        if (onResult) {
+          onResult(undefined, "risk rejected");
+        }
+
+        return;
       }
     }
 
-    return this.trader.placeOrder(symbol, offset, side, volume, price, flag);
+    return this.trader.placeOrder(
+      symbol,
+      offset,
+      side,
+      volume,
+      price,
+      flag,
+      onResult,
+    );
   }
 
-  cancelOrder(strategy: IStrategy, order: OrderData) {
+  cancelOrder(
+    strategy: IStrategy,
+    order: OrderData,
+    onResult?: CancelOrderResultCallback,
+  ) {
     for (const cancelOrderRiskManager of this.cancelOrderRiskManagers) {
       const result = cancelOrderRiskManager.onCancelOrder(order);
 
       if (typeof result === "boolean") {
         if (!result) {
           strategy.onRisk("cancel-order-risk");
-          return false;
+
+          if (onResult) {
+            onResult(false, "risk rejected");
+          }
+
+          return;
         }
       } else {
         strategy.onRisk("cancel-order-risk", result);
-        return false;
+
+        if (onResult) {
+          onResult(false, "risk rejected");
+        }
+
+        return;
       }
     }
 
-    return this.trader.cancelOrder(order);
+    return this.trader.cancelOrder(order, onResult);
   }
 
   getTradingDay() {
