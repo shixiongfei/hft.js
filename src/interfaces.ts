@@ -89,15 +89,15 @@ export interface IStrategy extends IRiskManagerReceiver, IOrderReceiver {
 }
 
 export interface ICommissionRateReceiver {
-  onCommissionRate: (rate: CommissionRate) => void;
+  onCommissionRate: (rate: CommissionRate | undefined) => void;
 }
 
 export interface IMarginRateReceiver {
-  onMarginRate: (rate: MarginRate) => void;
+  onMarginRate: (rate: MarginRate | undefined) => void;
 }
 
 export interface IInstrumentReceiver {
-  onInstrument: (instrument: InstrumentData) => void;
+  onInstrument: (instrument: InstrumentData | undefined) => void;
 }
 
 export interface IInstrumentsReceiver {

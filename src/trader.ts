@@ -12,16 +12,21 @@
 import ctp from "napi-ctp";
 import { CTPProvider, UserInfo } from "./provider.js";
 import {
+  InstrumentData,
   OffsetType,
   OrderData,
   OrderFlag,
   OrderStatus,
+  ProductType,
   SideType,
   TradeData,
 } from "./typedef.js";
 import {
+  IInstrumentReceiver,
+  IInstrumentsReceiver,
   ILifecycleListener,
   IOrderReceiver,
+  IOrdersReceiver,
   ITraderProvider,
 } from "./interfaces.js";
 
@@ -169,7 +174,12 @@ export class Trader extends CTPProvider implements ITraderProvider {
         }
 
         if (instrument) {
-          this.instruments.push(instrument);
+          if (
+            instrument.ProductClass === ctp.ProductClassType.Futures ||
+            instrument.ProductClass === ctp.ProductClassType.Options
+          ) {
+            this.instruments.push(instrument);
+          }
         }
 
         if (options.isLast && !fired) {
@@ -277,6 +287,56 @@ export class Trader extends CTPProvider implements ITraderProvider {
     return this.tradingDay;
   }
 
+  queryInstrument(symbol: string, receiver: IInstrumentReceiver) {
+    const instrumentId = this._symbolToInstrumentId(symbol);
+
+    const instrument = this.instruments.find(
+      (instrument) => instrument.InstrumentID === instrumentId,
+    );
+
+    receiver.onInstrument(
+      instrument ? this._toInstrumentData(instrument) : undefined,
+    );
+  }
+
+  queryInstruments(receiver: IInstrumentsReceiver, type?: ProductType) {
+    switch (type) {
+      case "future":
+        receiver.onInstruments(
+          this.instruments
+            .filter(
+              (instrument) =>
+                instrument.ProductClass === ctp.ProductClassType.Futures,
+            )
+            .map(this._toInstrumentData),
+        );
+        break;
+      case "option":
+        receiver.onInstruments(
+          this.instruments
+            .filter(
+              (instrument) =>
+                instrument.ProductClass === ctp.ProductClassType.Options,
+            )
+            .map(this._toInstrumentData),
+        );
+        break;
+      default:
+        receiver.onInstruments(this.instruments.map(this._toInstrumentData));
+        break;
+    }
+  }
+
+  queryOrders(receiver: IOrdersReceiver) {
+    const orders: OrderData[] = [];
+
+    this.orders.forEach((order) => {
+      orders.push(this._toOrderData(order));
+    });
+
+    receiver.onOrders(orders);
+  }
+
   private _calcOrderId(orderOrTrade: ctp.OrderField | ctp.TradeField) {
     const { ExchangeID, TraderID, OrderLocalID } = orderOrTrade;
     return `${ExchangeID}:${TraderID}:${OrderLocalID}`;
@@ -338,6 +398,17 @@ export class Trader extends CTPProvider implements ITraderProvider {
     }
   }
 
+  private _calcProductType(productClass: ctp.ProductClassType): ProductType {
+    switch (productClass) {
+      case ctp.ProductClassType.Futures:
+        return "future";
+      case ctp.ProductClassType.Options:
+        return "option";
+      default:
+        throw new Error(`Unsupported product class: ${productClass}`);
+    }
+  }
+
   private _toTradeData(trade: ctp.TradeField): TradeData {
     return Object.freeze({
       id: trade.TradeID,
@@ -369,6 +440,25 @@ export class Trader extends CTPProvider implements ITraderProvider {
       cancelTime:
         order.CancelTime !== "" ? this._parseTime(order.CancelTime) : undefined,
     });
+  }
+
+  private _toInstrumentData(instrument: ctp.InstrumentField): InstrumentData {
+    return {
+      symbol: `${instrument.InstrumentID}.${instrument.ExchangeID}`,
+      id: instrument.InstrumentID,
+      name: instrument.InstrumentName,
+      exchangeId: instrument.ExchangeID,
+      productId: instrument.ProductID,
+      productType: this._calcProductType(instrument.ProductClass),
+      deliveryTime: instrument.DeliveryYear * 100 + instrument.DeliveryMonth,
+      createDate: parseInt(instrument.CreateDate),
+      openDate: parseInt(instrument.OpenDate),
+      expireDate: parseInt(instrument.ExpireDate),
+      multiple: instrument.VolumeMultiple,
+      priceTick: instrument.PriceTick,
+      maxLimitOrderVolume: instrument.MaxLimitOrderVolume,
+      minLimitOrderVolume: instrument.MinLimitOrderVolume,
+    };
   }
 }
 
