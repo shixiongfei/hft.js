@@ -10,7 +10,11 @@
  */
 
 import ctp from "napi-ctp";
-import { ILifecycleListener, ITraderProvider } from "./interfaces.js";
+import {
+  ILifecycleListener,
+  IOrderReceiver,
+  ITraderProvider,
+} from "./interfaces.js";
 import { CTPProvider, UserInfo } from "./provider.js";
 
 export class Trader extends CTPProvider implements ITraderProvider {
@@ -19,6 +23,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
   private frontId: number;
   private sessionId: number;
   private orderRef: number;
+  private readonly receivers: IOrderReceiver[];
   private readonly instruments: ctp.InstrumentField[];
   private readonly orders: Map<string, ctp.OrderField>;
   private readonly trades: Map<string, ctp.TradeField[]>;
@@ -35,6 +40,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     this.frontId = 0;
     this.sessionId = 0;
     this.orderRef = 0;
+    this.receivers = [];
     this.instruments = [];
     this.orders = new Map();
     this.trades = new Map();
@@ -177,6 +183,22 @@ export class Trader extends CTPProvider implements ITraderProvider {
     this.traderApi = undefined;
 
     lifecycle.onClose();
+  }
+
+  addReceiver(receiver: IOrderReceiver) {
+    if (!this.receivers.includes(receiver)) {
+      this.receivers.push(receiver);
+    }
+  }
+
+  removeReceiver(receiver: IOrderReceiver) {
+    const index = this.receivers.indexOf(receiver);
+
+    if (index < 0) {
+      return;
+    }
+
+    this.receivers.splice(index, 1);
   }
 
   getTradingDay() {
