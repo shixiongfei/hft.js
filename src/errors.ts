@@ -9,37 +9,37 @@
  * https://github.com/shixiongfei/hft.js
  */
 
-export type LoginError = {
+export type LoginError = Readonly<{
   code: "login-error";
   message: string;
-};
+}>;
 
-export type QueryOrderError = {
+export type QueryOrderError = Readonly<{
   code: "query-order-error";
   message: string;
-};
+}>;
 
-export type QueryTradeError = {
+export type QueryTradeError = Readonly<{
   code: "query-trade-error";
   message: string;
-};
+}>;
 
-export type QueryInstrumentError = {
+export type QueryInstrumentError = Readonly<{
   code: "query-instrument-error";
   message: string;
-};
+}>;
 
-export type PlaceOrderError = {
+export type PlaceOrderError = Readonly<{
   code: "place-order-error";
   receiptId: string;
   message: string;
-};
+}>;
 
-export type CancelOrderError = {
+export type CancelOrderError = Readonly<{
   code: "cancel-order-error";
   receiptId: string;
   message: string;
-};
+}>;
 
 export type ProviderErrors =
   | LoginError

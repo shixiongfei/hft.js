@@ -75,11 +75,18 @@ export class CTPProvider {
       return false;
     }
 
-    lifecycle.onError({
-      code: error,
-      message: `${options.rspInfo.ErrorID}:${options.rspInfo.ErrorMsg}`,
-    });
+    lifecycle.onError(
+      Object.freeze({
+        code: error,
+        message: `${options.rspInfo.ErrorID}:${options.rspInfo.ErrorMsg}`,
+      }),
+    );
 
     return true;
+  }
+
+  protected _parseTime(time: string) {
+    const [hour, minute, second] = time.split(":").map(parseInt);
+    return hour * 10000 + minute * 100 + second;
   }
 }

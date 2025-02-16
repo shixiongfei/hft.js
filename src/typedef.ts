@@ -9,22 +9,22 @@
  * https://github.com/shixiongfei/hft.js
  */
 
-export type TapeSide = {
+export type TapeSide = Readonly<{
   price: number[];
   volume: number[];
-};
+}>;
 
-export type OrderBook = {
+export type OrderBook = Readonly<{
   asks: TapeSide;
   bids: TapeSide;
-};
+}>;
 
-export type PriceRange = {
+export type PriceRange = Readonly<{
   upper: number;
   lower: number;
-};
+}>;
 
-export type TickData = {
+export type TickData = Readonly<{
   symbol: string;
   date: number;
   time: number;
@@ -41,7 +41,7 @@ export type TickData = {
   limits: PriceRange;
   bandings: PriceRange;
   orderBook: OrderBook;
-};
+}>;
 
 export type TapeType =
   | "open"
@@ -64,7 +64,7 @@ export type TapeStatus =
   | "dual-close"
   | "invalid";
 
-export type TapeData = {
+export type TapeData = Readonly<{
   symbol: string;
   date: number;
   time: number;
@@ -73,40 +73,40 @@ export type TapeData = {
   type: TapeType;
   direction: TapeDirection;
   status: TapeStatus;
-};
+}>;
 
-export type PositionCell = {
+export type PositionCell = Readonly<{
   position: number;
   frozen: number;
-};
+}>;
 
-export type PositionSide = {
+export type PositionSide = Readonly<{
   today: PositionCell;
   history: PositionCell;
   pending: number;
-};
+}>;
 
 export type SideType = "long" | "short";
 
-export type PositionDetail = {
+export type PositionDetail = Readonly<{
   symbol: string;
   date: number;
   side: SideType;
   price: number;
   volume: number;
   margin: number;
-};
+}>;
 
-export type PositionData = {
+export type PositionData = Readonly<{
   symbol: string;
   long: PositionSide;
   short: PositionSide;
   details: PositionDetail[];
-};
+}>;
 
 export type OffsetType = "open" | "close" | "close-today";
 
-export type OrderFlag = "limit";
+export type OrderFlag = "limit" | "market";
 
 export type OrderStatus =
   | "submitted"
@@ -115,15 +115,15 @@ export type OrderStatus =
   | "canceled"
   | "rejected";
 
-export type TradeData = {
+export type TradeData = Readonly<{
   id: string;
   date: number;
   time: number;
   price: number;
   volume: number;
-};
+}>;
 
-export type OrderData = {
+export type OrderData = Readonly<{
   id: string;
   receiptId: string;
   symbol: string;
@@ -134,39 +134,40 @@ export type OrderData = {
   offset: OffsetType;
   price: number;
   volume: number;
+  traded: number;
   status: OrderStatus;
   trades: TradeData[];
   cancelTime?: number;
-};
+}>;
 
-export type OrderStatistic = {
+export type OrderStatistic = Readonly<{
   symbol: string;
   places: number;
   entrusts: number;
   trades: number;
   cancels: number;
   rejects: number;
-};
+}>;
 
-export type RatioAmount = {
+export type RatioAmount = Readonly<{
   ratio: number;
   amount: number;
-};
+}>;
 
-export type CommissionRate = {
+export type CommissionRate = Readonly<{
   symbol: string;
   open: RatioAmount;
   close: RatioAmount;
   closeToday: RatioAmount;
-};
+}>;
 
-export type MarginRate = {
+export type MarginRate = Readonly<{
   symbol: string;
   long: RatioAmount;
   short: RatioAmount;
-};
+}>;
 
-export type TradingAccount = {
+export type TradingAccount = Readonly<{
   id: string;
   currency: string;
   preBalance: number;
@@ -177,11 +178,11 @@ export type TradingAccount = {
   frozenMargin: number;
   frozenCash: number;
   frozenCommission: number;
-};
+}>;
 
 export type ProductType = "future" | "option";
 
-export type InstrumentData = {
+export type InstrumentData = Readonly<{
   symbol: string;
   id: string;
   name: string;
@@ -196,4 +197,4 @@ export type InstrumentData = {
   priceTick: number;
   maxLimitOrderVolume: number;
   minLimitOrderVolume: number;
-};
+}>;
