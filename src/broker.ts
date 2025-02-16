@@ -17,7 +17,7 @@ import {
   TradeData,
 } from "./typedef.js";
 import {
-  CancelOrderResultCallback,
+  ICancelOrderResultReceiver,
   ErrorType,
   ICancelOrderRiskManager,
   ICommissionRateReceiver,
@@ -36,7 +36,7 @@ import {
   ITickReceiver,
   ITraderProvider,
   ITradingAccountsReceiver,
-  PlaceOrderResultCallback,
+  IPlaceOrderResultReceiver,
 } from "./interfaces.js";
 
 export class Broker implements IRuntimeEngine, IOrderReceiver {
@@ -145,7 +145,7 @@ export class Broker implements IRuntimeEngine, IOrderReceiver {
     volume: number,
     price: number,
     flag: OrderFlag,
-    onResult?: PlaceOrderResultCallback,
+    receiver?: IPlaceOrderResultReceiver,
   ) {
     for (const placeOrderRiskManager of this.placeOrderRiskManagers) {
       const result = placeOrderRiskManager.onPlaceOrder(
@@ -161,8 +161,8 @@ export class Broker implements IRuntimeEngine, IOrderReceiver {
         if (!result) {
           strategy.onRisk("place-order-risk");
 
-          if (onResult) {
-            onResult(undefined, "risk rejected");
+          if (receiver) {
+            receiver.onPlaceOrderError("risk rejected");
           }
 
           return;
@@ -170,8 +170,8 @@ export class Broker implements IRuntimeEngine, IOrderReceiver {
       } else {
         strategy.onRisk("place-order-risk", result);
 
-        if (onResult) {
-          onResult(undefined, "risk rejected");
+        if (receiver) {
+          receiver.onPlaceOrderError("risk rejected");
         }
 
         return;
@@ -185,14 +185,14 @@ export class Broker implements IRuntimeEngine, IOrderReceiver {
       volume,
       price,
       flag,
-      onResult,
+      receiver,
     );
   }
 
   cancelOrder(
     strategy: IStrategy,
     order: OrderData,
-    onResult?: CancelOrderResultCallback,
+    receiver?: ICancelOrderResultReceiver,
   ) {
     for (const cancelOrderRiskManager of this.cancelOrderRiskManagers) {
       const result = cancelOrderRiskManager.onCancelOrder(order);
@@ -201,8 +201,8 @@ export class Broker implements IRuntimeEngine, IOrderReceiver {
         if (!result) {
           strategy.onRisk("cancel-order-risk");
 
-          if (onResult) {
-            onResult(false, "risk rejected");
+          if (receiver) {
+            receiver.onCancelError("risk rejected");
           }
 
           return;
@@ -210,15 +210,15 @@ export class Broker implements IRuntimeEngine, IOrderReceiver {
       } else {
         strategy.onRisk("cancel-order-risk", result);
 
-        if (onResult) {
-          onResult(false, "risk rejected");
+        if (receiver) {
+          receiver.onCancelError("risk rejected");
         }
 
         return;
       }
     }
 
-    return this.trader.cancelOrder(order, onResult);
+    return this.trader.cancelOrder(order, receiver);
   }
 
   getTradingDay() {

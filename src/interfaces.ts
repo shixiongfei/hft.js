@@ -154,15 +154,15 @@ export interface IMarketProvider
   setRecorder: (recorder?: IMarketRecorder) => void;
 }
 
-export type PlaceOrderResultCallback = (
-  receiptId: string | undefined,
-  reason?: string,
-) => void;
+export type IPlaceOrderResultReceiver = {
+  onPlaceOrderSuccess: (receiptId: string) => void;
+  onPlaceOrderError: (reason: string) => void;
+};
 
-export type CancelOrderResultCallback = (
-  result: boolean,
-  reason?: string,
-) => void;
+export type ICancelOrderResultReceiver = {
+  onCancelSuccess: () => void;
+  onCancelError: (reason: string) => void;
+};
 
 export interface ITraderProvider extends IProvider, IOrderEmitter, IQueryApi {
   placeOrder: (
@@ -172,10 +172,13 @@ export interface ITraderProvider extends IProvider, IOrderEmitter, IQueryApi {
     volume: number,
     price: number,
     flag: OrderFlag,
-    onResult?: PlaceOrderResultCallback,
+    receiver?: IPlaceOrderResultReceiver,
   ) => void;
 
-  cancelOrder: (order: OrderData, onResult?: CancelOrderResultCallback) => void;
+  cancelOrder: (
+    order: OrderData,
+    receiver?: ICancelOrderResultReceiver,
+  ) => void;
 }
 
 export interface IRuntimeEngine
@@ -194,12 +197,12 @@ export interface IRuntimeEngine
     volume: number,
     price: number,
     flag: OrderFlag,
-    onResult?: PlaceOrderResultCallback,
+    receiver?: IPlaceOrderResultReceiver,
   ) => void;
 
   cancelOrder: (
     strategy: IStrategy,
     order: OrderData,
-    onResult?: CancelOrderResultCallback,
+    receiver?: ICancelOrderResultReceiver,
   ) => void;
 }
