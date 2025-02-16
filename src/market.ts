@@ -40,7 +40,11 @@ export class Market extends CTPProvider implements IMarketProvider {
     this.subscribers = new Map();
   }
 
-  setRecorder(recorder: IMarketRecorder) {
+  get hasRecorder() {
+    return !!this.recorder;
+  }
+
+  setRecorder(recorder?: IMarketRecorder) {
     this.recorder = recorder;
   }
 
