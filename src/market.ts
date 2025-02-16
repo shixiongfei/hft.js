@@ -192,10 +192,7 @@ export class Market extends CTPProvider implements IMarketProvider {
           }
         }
 
-        const [hour, minute, second] =
-          depthMarketData.UpdateTime.split(":").map(parseInt);
-
-        const time = hour * 10000 + minute * 100 + second;
+        const time = this._parseTime(depthMarketData.UpdateTime);
 
         const tick: TickData = Object.freeze({
           symbol: symbol,
