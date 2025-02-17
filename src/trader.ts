@@ -48,6 +48,8 @@ type CommissionRateQuery = {
   receiver: ICommissionRateReceiver;
 };
 
+type PositionInfo = {};
+
 export class Trader extends CTPProvider implements ITraderProvider {
   private traderApi?: ctp.Trader;
   private tradingDay: number;
@@ -60,6 +62,8 @@ export class Trader extends CTPProvider implements ITraderProvider {
   private readonly instruments: ctp.InstrumentField[];
   private readonly accounts: ctp.TradingAccountField[];
   private readonly positionDetails: ctp.InvestorPositionDetailField[];
+  private readonly symbols: Map<string, string>;
+  private readonly positions: Map<string, PositionInfo>;
   private readonly orders: Map<string, ctp.OrderField>;
   private readonly trades: Map<string, ctp.TradeField[]>;
   private readonly marginRates: Map<string, ctp.InstrumentMarginRateField>;
@@ -85,6 +89,8 @@ export class Trader extends CTPProvider implements ITraderProvider {
     this.instruments = [];
     this.accounts = [];
     this.positionDetails = [];
+    this.symbols = new Map();
+    this.positions = new Map();
     this.orders = new Map();
     this.trades = new Map();
     this.marginRates = new Map();
@@ -192,6 +198,27 @@ export class Trader extends CTPProvider implements ITraderProvider {
         }
 
         if (options.isLast) {
+          this.positions.clear();
+
+          this._withRetry(() =>
+            this.traderApi!.reqQryInvestorPosition(this.userInfo),
+          );
+        }
+      },
+    );
+
+    this.traderApi.on<ctp.InvestorPositionField>(
+      ctp.TraderEvent.RspQryInvestorPosition,
+      (position, options) => {
+        if (this._isErrorResp(lifecycle, options, "query-positions-error")) {
+          return;
+        }
+
+        if (position) {
+        }
+
+        if (options.isLast) {
+          this.symbols.clear();
           this.instruments.splice(0, this.instruments.length);
           this._withRetry(() => this.traderApi!.reqQryInstrument());
         }
@@ -212,6 +239,11 @@ export class Trader extends CTPProvider implements ITraderProvider {
             instrument.ProductClass === ctp.ProductClassType.Futures ||
             instrument.ProductClass === ctp.ProductClassType.Options
           ) {
+            this.symbols.set(
+              instrument.InstrumentID,
+              `${instrument.InstrumentID}.${instrument.ExchangeID}`,
+            );
+
             this.instruments.push(instrument);
           }
         }
@@ -393,7 +425,9 @@ export class Trader extends CTPProvider implements ITraderProvider {
     this.traderApi.on<ctp.InvestorPositionDetailField>(
       ctp.TraderEvent.RspQryInvestorPositionDetail,
       (positionDetail, options) => {
-        if (this._isErrorResp(lifecycle, options, "query-positions-error")) {
+        if (
+          this._isErrorResp(lifecycle, options, "query-position-details-error")
+        ) {
           const receivers = this.positionDetailsQueue.toArray();
 
           receivers.forEach((receiver) =>
@@ -775,12 +809,8 @@ export class Trader extends CTPProvider implements ITraderProvider {
   private _toPositionDetail(
     positionDetail: ctp.InvestorPositionDetailField,
   ): PositionDetail {
-    const instrument = this.instruments.find(
-      (instrument) => instrument.InstrumentID === positionDetail.InstrumentID,
-    )!;
-
     return Object.freeze({
-      symbol: `${instrument.InstrumentID}.${instrument.ExchangeID}`,
+      symbol: this.symbols.get(positionDetail.InstrumentID)!,
       date: parseInt(positionDetail.OpenDate),
       side: this._calcSideType(positionDetail.Direction),
       price: positionDetail.OpenPrice,
