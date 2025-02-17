@@ -448,12 +448,12 @@ export class Trader extends CTPProvider implements ITraderProvider {
           );
           const receivers = this.positionDetailsQueue.toArray();
 
+          this.positionDetailsChanged = false;
+
           receivers.forEach((receiver) =>
             receiver.onPositionDetails(positionDetails),
           );
-
           this.positionDetailsQueue.clear();
-          this.positionDetailsChanged = false;
         }
       },
     );
