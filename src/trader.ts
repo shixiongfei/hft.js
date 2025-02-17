@@ -23,6 +23,7 @@ import {
   ProductType,
   SideType,
   TradeData,
+  TradingAccount,
 } from "./typedef.js";
 import {
   ICommissionRateReceiver,
@@ -50,14 +51,18 @@ export class Trader extends CTPProvider implements ITraderProvider {
   private frontId: number;
   private sessionId: number;
   private orderRef: number;
+  private accountsQueryTime: number;
   private readonly receivers: IOrderReceiver[];
   private readonly instruments: ctp.InstrumentField[];
+  private readonly accounts: ctp.TradingAccountField[];
   private readonly orders: Map<string, ctp.OrderField>;
   private readonly trades: Map<string, ctp.TradeField[]>;
   private readonly marginRates: Map<string, ctp.InstrumentMarginRateField>;
   private readonly commRates: Map<string, ctp.InstrumentCommissionRateField>;
   private readonly marginRatesQueue: Denque<MarginRateQuery>;
   private readonly commRatesQueue: Denque<CommissionRateQuery>;
+  private readonly accountsQueue: Denque<ITradingAccountsReceiver>;
+  private readonly positionsQueue: Denque<IPositionsReceiver>;
 
   constructor(
     flowTdPath: string,
@@ -69,14 +74,18 @@ export class Trader extends CTPProvider implements ITraderProvider {
     this.frontId = 0;
     this.sessionId = 0;
     this.orderRef = 0;
+    this.accountsQueryTime = 0;
     this.receivers = [];
     this.instruments = [];
+    this.accounts = [];
     this.orders = new Map();
     this.trades = new Map();
     this.marginRates = new Map();
     this.commRates = new Map();
     this.marginRatesQueue = new Denque();
     this.commRatesQueue = new Denque();
+    this.accountsQueue = new Denque();
+    this.positionsQueue = new Denque();
   }
 
   open(lifecycle: ILifecycleListener) {
@@ -330,6 +339,34 @@ export class Trader extends CTPProvider implements ITraderProvider {
       },
     );
 
+    this.traderApi.on<ctp.TradingAccountField>(
+      ctp.TraderEvent.RspQryTradingAccount,
+      (account, options) => {
+        if (this._isErrorResp(lifecycle, options, "query-accounts-error")) {
+          const receivers = this.accountsQueue.toArray();
+
+          receivers.forEach((receiver) => receiver.onTradingAccounts([]));
+          this.accountsQueue.clear();
+
+          return;
+        }
+
+        if (account) {
+          this.accounts.push(account);
+        }
+
+        if (options.isLast) {
+          const accounts = this.accounts.map(this._toTradingAccount);
+          const receivers = this.accountsQueue.toArray();
+
+          receivers.forEach((receiver) => receiver.onTradingAccounts(accounts));
+          this.accountsQueue.clear();
+
+          this.accountsQueryTime = Date.now();
+        }
+      },
+    );
+
     return true;
   }
 
@@ -447,7 +484,24 @@ export class Trader extends CTPProvider implements ITraderProvider {
     }
   }
 
-  queryTradingAccounts(receiver: ITradingAccountsReceiver) {}
+  queryTradingAccounts(receiver: ITradingAccountsReceiver) {
+    if (this.accountsQueue.size() > 0) {
+      this.accountsQueue.push(receiver);
+      return;
+    }
+
+    const elapsed = Date.now() - this.accountsQueryTime;
+
+    if (elapsed < 3000) {
+      receiver.onTradingAccounts(this.accounts.map(this._toTradingAccount));
+      return;
+    }
+
+    this.accountsQueue.push(receiver);
+
+    this.accounts.splice(0, this.accounts.length);
+    this._withRetry(() => this.traderApi!.reqQryTradingAccount(this.userInfo));
+  }
 
   queryPositions(receiver: IPositionsReceiver) {}
 
@@ -620,6 +674,21 @@ export class Trader extends CTPProvider implements ITraderProvider {
         ratio: marginRate.ShortMarginRatioByMoney,
         amount: marginRate.ShortMarginRatioByVolume,
       }),
+    });
+  }
+
+  private _toTradingAccount(account: ctp.TradingAccountField): TradingAccount {
+    return Object.freeze({
+      id: account.AccountID,
+      currency: account.CurrencyID,
+      preBalance: account.PreBalance - account.Withdraw + account.Deposit,
+      balance: account.Balance,
+      cash: account.Available,
+      margin: account.CurrMargin,
+      commission: account.Commission,
+      frozenMargin: account.FrozenMargin,
+      frozenCash: account.FrozenCash,
+      frozenCommission: account.FrozenCommission,
     });
   }
 
