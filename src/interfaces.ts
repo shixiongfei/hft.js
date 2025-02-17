@@ -17,6 +17,7 @@ import {
   OrderData,
   OrderFlag,
   PositionData,
+  PositionDetail,
   ProductType,
   SideType,
   TickData,
@@ -52,7 +53,8 @@ export type ErrorType =
   | "query-instrument-error"
   | "query-margin-rate-error"
   | "query-commission-rate-error"
-  | "query-accounts-error";
+  | "query-accounts-error"
+  | "query-positions-error";
 
 export interface IErrorReceiver {
   onError: (error: ErrorType, message: string) => void;
@@ -104,15 +106,23 @@ export interface IInstrumentReceiver {
 }
 
 export interface IInstrumentsReceiver {
-  onInstruments: (instrument: InstrumentData[]) => void;
+  onInstruments: (instruments: InstrumentData[] | undefined) => void;
 }
 
 export interface ITradingAccountsReceiver {
-  onTradingAccounts: (account: TradingAccount[]) => void;
+  onTradingAccounts: (accounts: TradingAccount[] | undefined) => void;
+}
+
+export interface IPositionReceiver {
+  onPosition: (position: PositionData | undefined) => void;
 }
 
 export interface IPositionsReceiver {
-  onPositions: (position: PositionData[]) => void;
+  onPositions: (positions: PositionData[] | undefined) => void;
+}
+
+export interface IPositionDetailsReceiver {
+  onPositionDetails: (positionDetails: PositionDetail[] | undefined) => void;
 }
 
 export interface IProvider {
@@ -135,6 +145,7 @@ export interface IQueryApi {
 
   queryMarginRate: (symbol: string, receiver: IMarginRateReceiver) => void;
   queryInstrument: (symbol: string, receiver: IInstrumentReceiver) => void;
+  queryPosition: (symbol: string, receiver: IPositionReceiver) => void;
 
   queryInstruments: (
     receiver: IInstrumentsReceiver,
@@ -143,6 +154,7 @@ export interface IQueryApi {
 
   queryTradingAccounts: (receiver: ITradingAccountsReceiver) => void;
   queryPositions: (receiver: IPositionsReceiver) => void;
+  queryPositionDetails: (receiver: IPositionDetailsReceiver) => void;
   queryOrders: (receiver: IOrdersReceiver) => void;
 }
 

@@ -86,6 +86,12 @@ export type PositionSide = Readonly<{
   pending: number;
 }>;
 
+export type PositionData = Readonly<{
+  symbol: string;
+  long: PositionSide;
+  short: PositionSide;
+}>;
+
 export type SideType = "long" | "short";
 
 export type PositionDetail = Readonly<{
@@ -95,13 +101,6 @@ export type PositionDetail = Readonly<{
   price: number;
   volume: number;
   margin: number;
-}>;
-
-export type PositionData = Readonly<{
-  symbol: string;
-  long: PositionSide;
-  short: PositionSide;
-  details: PositionDetail[];
 }>;
 
 export type OffsetType = "open" | "close" | "close-today";

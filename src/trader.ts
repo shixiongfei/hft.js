@@ -20,6 +20,7 @@ import {
   OrderData,
   OrderFlag,
   OrderStatus,
+  PositionDetail,
   ProductType,
   SideType,
   TradeData,
@@ -33,6 +34,8 @@ import {
   IMarginRateReceiver,
   IOrderReceiver,
   IOrdersReceiver,
+  IPositionDetailsReceiver,
+  IPositionReceiver,
   IPositionsReceiver,
   ITraderProvider,
   ITradingAccountsReceiver,
@@ -52,9 +55,11 @@ export class Trader extends CTPProvider implements ITraderProvider {
   private sessionId: number;
   private orderRef: number;
   private accountsQueryTime: number;
+  private positionDetailsChanged: boolean;
   private readonly receivers: IOrderReceiver[];
   private readonly instruments: ctp.InstrumentField[];
   private readonly accounts: ctp.TradingAccountField[];
+  private readonly positionDetails: ctp.InvestorPositionDetailField[];
   private readonly orders: Map<string, ctp.OrderField>;
   private readonly trades: Map<string, ctp.TradeField[]>;
   private readonly marginRates: Map<string, ctp.InstrumentMarginRateField>;
@@ -62,7 +67,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
   private readonly marginRatesQueue: Denque<MarginRateQuery>;
   private readonly commRatesQueue: Denque<CommissionRateQuery>;
   private readonly accountsQueue: Denque<ITradingAccountsReceiver>;
-  private readonly positionsQueue: Denque<IPositionsReceiver>;
+  private readonly positionDetailsQueue: Denque<IPositionDetailsReceiver>;
 
   constructor(
     flowTdPath: string,
@@ -75,9 +80,11 @@ export class Trader extends CTPProvider implements ITraderProvider {
     this.sessionId = 0;
     this.orderRef = 0;
     this.accountsQueryTime = 0;
+    this.positionDetailsChanged = true;
     this.receivers = [];
     this.instruments = [];
     this.accounts = [];
+    this.positionDetails = [];
     this.orders = new Map();
     this.trades = new Map();
     this.marginRates = new Map();
@@ -85,7 +92,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     this.marginRatesQueue = new Denque();
     this.commRatesQueue = new Denque();
     this.accountsQueue = new Denque();
-    this.positionsQueue = new Denque();
+    this.positionDetailsQueue = new Denque();
   }
 
   open(lifecycle: ILifecycleListener) {
@@ -213,6 +220,18 @@ export class Trader extends CTPProvider implements ITraderProvider {
           fired = true;
           lifecycle.onOpen();
 
+          if (this.accountsQueue.size() > 0) {
+            this._withRetry(() =>
+              this.traderApi!.reqQryTradingAccount(this.userInfo),
+            );
+          }
+
+          if (this.positionDetailsQueue.size() > 0) {
+            this._withRetry(() =>
+              this.traderApi!.reqQryInvestorPositionDetail(this.userInfo),
+            );
+          }
+
           this._processMarginRatesQueue();
           this._processCommissionRatesQueue();
         }
@@ -270,6 +289,8 @@ export class Trader extends CTPProvider implements ITraderProvider {
       } else {
         this.trades.set(orderId, [trade]);
       }
+
+      this.positionDetailsChanged = true;
 
       const order = this.orders.get(orderId);
 
@@ -345,9 +366,11 @@ export class Trader extends CTPProvider implements ITraderProvider {
         if (this._isErrorResp(lifecycle, options, "query-accounts-error")) {
           const receivers = this.accountsQueue.toArray();
 
-          receivers.forEach((receiver) => receiver.onTradingAccounts([]));
-          this.accountsQueue.clear();
+          receivers.forEach((receiver) =>
+            receiver.onTradingAccounts(undefined),
+          );
 
+          this.accountsQueue.clear();
           return;
         }
 
@@ -363,6 +386,40 @@ export class Trader extends CTPProvider implements ITraderProvider {
           this.accountsQueue.clear();
 
           this.accountsQueryTime = Date.now();
+        }
+      },
+    );
+
+    this.traderApi.on<ctp.InvestorPositionDetailField>(
+      ctp.TraderEvent.RspQryInvestorPositionDetail,
+      (positionDetail, options) => {
+        if (this._isErrorResp(lifecycle, options, "query-positions-error")) {
+          const receivers = this.positionDetailsQueue.toArray();
+
+          receivers.forEach((receiver) =>
+            receiver.onPositionDetails(undefined),
+          );
+          this.positionDetailsQueue.clear();
+
+          return;
+        }
+
+        if (positionDetail) {
+          this.positionDetails.push(positionDetail);
+        }
+
+        if (options.isLast) {
+          const positionDetails = this.positionDetails.map(
+            this._toPositionDetail,
+          );
+          const receivers = this.positionDetailsQueue.toArray();
+
+          receivers.forEach((receiver) =>
+            receiver.onPositionDetails(positionDetails),
+          );
+
+          this.positionDetailsQueue.clear();
+          this.positionDetailsChanged = false;
         }
       },
     );
@@ -456,6 +513,8 @@ export class Trader extends CTPProvider implements ITraderProvider {
     );
   }
 
+  queryPosition(symbol: string, receiver: IPositionReceiver) {}
+
   queryInstruments(receiver: IInstrumentsReceiver, type?: ProductType) {
     switch (type) {
       case "future":
@@ -498,9 +557,30 @@ export class Trader extends CTPProvider implements ITraderProvider {
     }
 
     this.accountsQueue.push(receiver);
-
     this.accounts.splice(0, this.accounts.length);
+
     this._withRetry(() => this.traderApi!.reqQryTradingAccount(this.userInfo));
+  }
+
+  queryPositionDetails(receiver: IPositionDetailsReceiver) {
+    if (this.positionDetailsQueue.size() > 0) {
+      this.positionDetailsQueue.push(receiver);
+      return;
+    }
+
+    if (!this.positionDetailsChanged) {
+      receiver.onPositionDetails(
+        this.positionDetails.map(this._toPositionDetail),
+      );
+      return;
+    }
+
+    this.positionDetailsQueue.push(receiver);
+    this.positionDetails.splice(0, this.positionDetails.length);
+
+    this._withRetry(() =>
+      this.traderApi!.reqQryInvestorPositionDetail(this.userInfo),
+    );
   }
 
   queryPositions(receiver: IPositionsReceiver) {}
@@ -689,6 +769,23 @@ export class Trader extends CTPProvider implements ITraderProvider {
       frozenMargin: account.FrozenMargin,
       frozenCash: account.FrozenCash,
       frozenCommission: account.FrozenCommission,
+    });
+  }
+
+  private _toPositionDetail(
+    positionDetail: ctp.InvestorPositionDetailField,
+  ): PositionDetail {
+    const instrument = this.instruments.find(
+      (instrument) => instrument.InstrumentID === positionDetail.InstrumentID,
+    )!;
+
+    return Object.freeze({
+      symbol: `${instrument.InstrumentID}.${instrument.ExchangeID}`,
+      date: parseInt(positionDetail.OpenDate),
+      side: this._calcSideType(positionDetail.Direction),
+      price: positionDetail.OpenPrice,
+      volume: positionDetail.Volume,
+      margin: positionDetail.Margin,
     });
   }
 
