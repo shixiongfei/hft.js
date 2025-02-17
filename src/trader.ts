@@ -9,10 +9,13 @@
  * https://github.com/shixiongfei/hft.js
  */
 
+import Denque from "denque";
 import ctp from "napi-ctp";
 import { CTPProvider, UserInfo } from "./provider.js";
 import {
+  CommissionRate,
   InstrumentData,
+  MarginRate,
   OffsetType,
   OrderData,
   OrderFlag,
@@ -22,13 +25,24 @@ import {
   TradeData,
 } from "./typedef.js";
 import {
+  ICommissionRateReceiver,
   IInstrumentReceiver,
   IInstrumentsReceiver,
   ILifecycleListener,
+  IMarginRateReceiver,
   IOrderReceiver,
   IOrdersReceiver,
+  IPositionsReceiver,
   ITraderProvider,
+  ITradingAccountsReceiver,
 } from "./interfaces.js";
+
+type MarginRateQuery = { symbol: string; receiver: IMarginRateReceiver };
+
+type CommissionRateQuery = {
+  symbol: string;
+  receiver: ICommissionRateReceiver;
+};
 
 export class Trader extends CTPProvider implements ITraderProvider {
   private traderApi?: ctp.Trader;
@@ -42,6 +56,8 @@ export class Trader extends CTPProvider implements ITraderProvider {
   private readonly trades: Map<string, ctp.TradeField[]>;
   private readonly marginRates: Map<string, ctp.InstrumentMarginRateField>;
   private readonly commRates: Map<string, ctp.InstrumentCommissionRateField>;
+  private readonly marginRatesQueue: Denque<MarginRateQuery>;
+  private readonly commRatesQueue: Denque<CommissionRateQuery>;
 
   constructor(
     flowTdPath: string,
@@ -59,6 +75,8 @@ export class Trader extends CTPProvider implements ITraderProvider {
     this.trades = new Map();
     this.marginRates = new Map();
     this.commRates = new Map();
+    this.marginRatesQueue = new Denque();
+    this.commRatesQueue = new Denque();
   }
 
   open(lifecycle: ILifecycleListener) {
@@ -185,6 +203,9 @@ export class Trader extends CTPProvider implements ITraderProvider {
         if (options.isLast && !fired) {
           fired = true;
           lifecycle.onOpen();
+
+          this._processMarginRatesQueue();
+          this._processCommissionRatesQueue();
         }
       },
     );
@@ -253,6 +274,62 @@ export class Trader extends CTPProvider implements ITraderProvider {
       }
     });
 
+    this.traderApi.on<ctp.InstrumentMarginRateField>(
+      ctp.TraderEvent.RspQryInstrumentMarginRate,
+      (marginRate, options) => {
+        const query = this.marginRatesQueue.shift();
+
+        if (this._isErrorResp(lifecycle, options, "query-margin-rate-error")) {
+          if (query) {
+            query.receiver.onMarginRate(undefined);
+          }
+
+          return;
+        }
+
+        if (marginRate) {
+          this.marginRates.set(marginRate.InstrumentID, marginRate);
+
+          if (query) {
+            query.receiver.onMarginRate(
+              this._toMarginRate(query.symbol, marginRate),
+            );
+          }
+        }
+
+        this._processMarginRatesQueue();
+      },
+    );
+
+    this.traderApi.on<ctp.InstrumentCommissionRateField>(
+      ctp.TraderEvent.RspQryInstrumentCommissionRate,
+      (commRate, options) => {
+        const query = this.commRatesQueue.shift();
+
+        if (
+          this._isErrorResp(lifecycle, options, "query-commission-rate-error")
+        ) {
+          if (query) {
+            query.receiver.onCommissionRate(undefined);
+          }
+
+          return;
+        }
+
+        if (commRate) {
+          this.commRates.set(commRate.InstrumentID, commRate);
+
+          if (query) {
+            query.receiver.onCommissionRate(
+              this._toCommissionRate(query.symbol, commRate),
+            );
+          }
+        }
+
+        this._processCommissionRatesQueue();
+      },
+    );
+
     return true;
   }
 
@@ -285,6 +362,49 @@ export class Trader extends CTPProvider implements ITraderProvider {
 
   getTradingDay() {
     return this.tradingDay;
+  }
+
+  queryCommissionRate(symbol: string, receiver: ICommissionRateReceiver) {
+    const instrumentId = this._symbolToInstrumentId(symbol);
+    const commRate = this.commRates.get(instrumentId);
+
+    if (commRate) {
+      receiver.onCommissionRate(this._toCommissionRate(symbol, commRate));
+      return;
+    }
+
+    this.commRatesQueue.push({ symbol, receiver });
+
+    if (this.commRatesQueue.size() === 1 && this.traderApi) {
+      this._withRetry(() =>
+        this.traderApi!.reqQryInstrumentCommissionRate({
+          ...this.userInfo,
+          InstrumentID: instrumentId,
+        }),
+      );
+    }
+  }
+
+  queryMarginRate(symbol: string, receiver: IMarginRateReceiver) {
+    const instrumentId = this._symbolToInstrumentId(symbol);
+    const marginRate = this.marginRates.get(instrumentId);
+
+    if (marginRate) {
+      receiver.onMarginRate(this._toMarginRate(symbol, marginRate));
+      return;
+    }
+
+    this.marginRatesQueue.push({ symbol, receiver });
+
+    if (this.marginRatesQueue.size() === 1 && this.traderApi) {
+      this._withRetry(() =>
+        this.traderApi!.reqQryInstrumentMarginRate({
+          ...this.userInfo,
+          HedgeFlag: ctp.HedgeFlagType.Speculation,
+          InstrumentID: instrumentId,
+        }),
+      );
+    }
   }
 
   queryInstrument(symbol: string, receiver: IInstrumentReceiver) {
@@ -326,6 +446,10 @@ export class Trader extends CTPProvider implements ITraderProvider {
         break;
     }
   }
+
+  queryTradingAccounts(receiver: ITradingAccountsReceiver) {}
+
+  queryPositions(receiver: IPositionsReceiver) {}
 
   queryOrders(receiver: IOrdersReceiver) {
     const orders: OrderData[] = [];
@@ -443,7 +567,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
   }
 
   private _toInstrumentData(instrument: ctp.InstrumentField): InstrumentData {
-    return {
+    return Object.freeze({
       symbol: `${instrument.InstrumentID}.${instrument.ExchangeID}`,
       id: instrument.InstrumentID,
       name: instrument.InstrumentName,
@@ -458,7 +582,94 @@ export class Trader extends CTPProvider implements ITraderProvider {
       priceTick: instrument.PriceTick,
       maxLimitOrderVolume: instrument.MaxLimitOrderVolume,
       minLimitOrderVolume: instrument.MinLimitOrderVolume,
-    };
+    });
+  }
+
+  private _toCommissionRate(
+    symbol: string,
+    commRate: ctp.InstrumentCommissionRateField,
+  ): CommissionRate {
+    return Object.freeze({
+      symbol: symbol,
+      open: Object.freeze({
+        ratio: commRate.OpenRatioByMoney,
+        amount: commRate.OpenRatioByVolume,
+      }),
+      close: Object.freeze({
+        ratio: commRate.CloseRatioByMoney,
+        amount: commRate.CloseRatioByVolume,
+      }),
+      closeToday: Object.freeze({
+        ratio: commRate.CloseTodayRatioByMoney,
+        amount: commRate.CloseTodayRatioByVolume,
+      }),
+    });
+  }
+
+  private _toMarginRate(
+    symbol: string,
+    marginRate: ctp.InstrumentMarginRateField,
+  ): MarginRate {
+    return Object.freeze({
+      symbol: symbol,
+      long: Object.freeze({
+        ratio: marginRate.LongMarginRatioByMoney,
+        amount: marginRate.LongMarginRatioByVolume,
+      }),
+      short: Object.freeze({
+        ratio: marginRate.ShortMarginRatioByMoney,
+        amount: marginRate.ShortMarginRatioByVolume,
+      }),
+    });
+  }
+
+  private _processMarginRatesQueue() {
+    while (!this.marginRatesQueue.isEmpty()) {
+      const nextQuery = this.marginRatesQueue.peekFront()!;
+
+      const instrumentId = this._symbolToInstrumentId(nextQuery.symbol);
+      const marginRate = this.marginRates.get(instrumentId);
+
+      if (marginRate) {
+        nextQuery.receiver.onMarginRate(
+          this._toMarginRate(nextQuery.symbol, marginRate),
+        );
+
+        this.marginRatesQueue.shift();
+      } else {
+        this._withRetry(() =>
+          this.traderApi!.reqQryInstrumentMarginRate({
+            ...this.userInfo,
+            HedgeFlag: ctp.HedgeFlagType.Speculation,
+            InstrumentID: instrumentId,
+          }),
+        );
+      }
+    }
+  }
+
+  private _processCommissionRatesQueue() {
+    while (!this.commRatesQueue.isEmpty()) {
+      const nextQuery = this.commRatesQueue.peekFront()!;
+
+      const instrumentId = this._symbolToInstrumentId(nextQuery.symbol);
+      const commRate = this.commRates.get(instrumentId);
+
+      if (commRate) {
+        nextQuery.receiver.onCommissionRate(
+          this._toCommissionRate(nextQuery.symbol, commRate),
+        );
+
+        this.commRatesQueue.shift();
+      } else {
+        this._withRetry(() =>
+          this.traderApi!.reqQryInstrumentCommissionRate({
+            ...this.userInfo,
+            InstrumentID: instrumentId,
+          }),
+        );
+      }
+    }
   }
 }
 
