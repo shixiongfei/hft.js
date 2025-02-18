@@ -20,6 +20,7 @@ import {
   OrderData,
   OrderFlag,
   OrderStatus,
+  PositionData,
   PositionDetail,
   ProductType,
   SideType,
@@ -48,7 +49,8 @@ type CommissionRateQuery = {
   receiver: ICommissionRateReceiver;
 };
 
-type PositionInfo = {};
+type Writeable<T> = { -readonly [P in keyof T]: Writeable<T[P]> };
+type PositionInfo = Writeable<PositionData>;
 
 export class Trader extends CTPProvider implements ITraderProvider {
   private traderApi?: ctp.Trader;
@@ -198,34 +200,12 @@ export class Trader extends CTPProvider implements ITraderProvider {
         }
 
         if (options.isLast) {
-          this.positions.clear();
-
-          this._withRetry(() =>
-            this.traderApi!.reqQryInvestorPosition(this.userInfo),
-          );
-        }
-      },
-    );
-
-    this.traderApi.on<ctp.InvestorPositionField>(
-      ctp.TraderEvent.RspQryInvestorPosition,
-      (position, options) => {
-        if (this._isErrorResp(lifecycle, options, "query-positions-error")) {
-          return;
-        }
-
-        if (position) {
-        }
-
-        if (options.isLast) {
           this.symbols.clear();
           this.instruments.splice(0, this.instruments.length);
           this._withRetry(() => this.traderApi!.reqQryInstrument());
         }
       },
     );
-
-    let fired = false;
 
     this.traderApi.on<ctp.InstrumentField>(
       ctp.TraderEvent.RspQryInstrument,
@@ -248,9 +228,89 @@ export class Trader extends CTPProvider implements ITraderProvider {
           }
         }
 
-        if (options.isLast && !fired) {
-          fired = true;
-          lifecycle.onOpen();
+        if (options.isLast) {
+          this.positions.clear();
+
+          this._withRetry(() =>
+            this.traderApi!.reqQryInvestorPosition(this.userInfo),
+          );
+        }
+      },
+    );
+
+    let fired = false;
+
+    this.traderApi.on<ctp.InvestorPositionField>(
+      ctp.TraderEvent.RspQryInvestorPosition,
+      (position, options) => {
+        if (this._isErrorResp(lifecycle, options, "query-positions-error")) {
+          return;
+        }
+
+        if (position) {
+          const instrumentId = position.InstrumentID;
+          const symbol = this.symbols.get(instrumentId);
+
+          if (symbol) {
+            let current = this.positions.get(instrumentId);
+
+            if (!current) {
+              current = {
+                symbol: symbol,
+                long: {
+                  today: { position: 0, frozen: 0 },
+                  history: { position: 0, frozen: 0 },
+                  pending: 0,
+                },
+                short: {
+                  today: { position: 0, frozen: 0 },
+                  history: { position: 0, frozen: 0 },
+                  pending: 0,
+                },
+              };
+
+              this.positions.set(instrumentId, current);
+            }
+
+            const ExchangeSH = ["SHFE", "INE"];
+
+            switch (position.PosiDirection) {
+              case ctp.PosiDirectionType.Long:
+                if (position.PositionDate === ctp.PositionDateType.Today) {
+                  if (ExchangeSH.includes(position.ExchangeID)) {
+                    current.long.today.position += position.TodayPosition;
+                  } else {
+                    current.long.today.position += position.Position;
+                  }
+                } else {
+                  current.long.history.position +=
+                    position.Position - position.TodayPosition;
+                }
+
+                break;
+
+              case ctp.PosiDirectionType.Short:
+                if (position.PositionDate === ctp.PositionDateType.Today) {
+                  if (ExchangeSH.includes(position.ExchangeID)) {
+                    current.short.today.position += position.TodayPosition;
+                  } else {
+                    current.short.today.position += position.Position;
+                  }
+                } else {
+                  current.short.history.position +=
+                    position.Position - position.TodayPosition;
+                }
+
+                break;
+            }
+          }
+        }
+
+        if (options.isLast) {
+          if (!fired) {
+            fired = true;
+            lifecycle.onOpen();
+          }
 
           if (this.accountsQueue.size() > 0) {
             this._withRetry(() =>
@@ -547,7 +607,34 @@ export class Trader extends CTPProvider implements ITraderProvider {
     );
   }
 
-  queryPosition(symbol: string, receiver: IPositionReceiver) {}
+  queryPosition(symbol: string, receiver: IPositionReceiver) {
+    const instrumentId = this._symbolToInstrumentId(symbol);
+    const position = this.positions.get(instrumentId);
+
+    if (position) {
+      receiver.onPosition(this._toPositionData(position));
+    } else {
+      if (this.symbols.has(instrumentId)) {
+        receiver.onPosition(
+          Object.freeze({
+            symbol: symbol,
+            long: Object.freeze({
+              today: Object.freeze({ position: 0, frozen: 0 }),
+              history: Object.freeze({ position: 0, frozen: 0 }),
+              pending: 0,
+            }),
+            short: Object.freeze({
+              today: Object.freeze({ position: 0, frozen: 0 }),
+              history: Object.freeze({ position: 0, frozen: 0 }),
+              pending: 0,
+            }),
+          }),
+        );
+      } else {
+        receiver.onPosition(undefined);
+      }
+    }
+  }
 
   queryInstruments(receiver: IInstrumentsReceiver, type?: ProductType) {
     switch (type) {
@@ -617,7 +704,15 @@ export class Trader extends CTPProvider implements ITraderProvider {
     );
   }
 
-  queryPositions(receiver: IPositionsReceiver) {}
+  queryPositions(receiver: IPositionsReceiver) {
+    const positions: PositionData[] = [];
+
+    this.positions.forEach((position) =>
+      positions.push(this._toPositionData(position)),
+    );
+
+    receiver.onPositions(positions);
+  }
 
   queryOrders(receiver: IOrdersReceiver) {
     const orders: OrderData[] = [];
@@ -816,6 +911,22 @@ export class Trader extends CTPProvider implements ITraderProvider {
       price: positionDetail.OpenPrice,
       volume: positionDetail.Volume,
       margin: positionDetail.Margin,
+    });
+  }
+
+  private _toPositionData(position: PositionInfo): PositionData {
+    return Object.freeze({
+      symbol: position.symbol,
+      long: Object.freeze({
+        today: Object.freeze({ ...position.long.today }),
+        history: Object.freeze({ ...position.long.history }),
+        pending: position.long.pending,
+      }),
+      short: Object.freeze({
+        today: Object.freeze({ ...position.short.today }),
+        history: Object.freeze({ ...position.short.history }),
+        pending: position.short.pending,
+      }),
     });
   }
 
