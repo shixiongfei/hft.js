@@ -286,7 +286,6 @@ export class Trader extends CTPProvider implements ITraderProvider {
                   current.long.history.position +=
                     position.Position - position.TodayPosition;
                 }
-
                 break;
 
               case ctp.PosiDirectionType.Short:
@@ -300,7 +299,6 @@ export class Trader extends CTPProvider implements ITraderProvider {
                   current.short.history.position +=
                     position.Position - position.TodayPosition;
                 }
-
                 break;
             }
           }
@@ -365,9 +363,6 @@ export class Trader extends CTPProvider implements ITraderProvider {
             const orderData = this._toOrderData(order);
             this.receivers.forEach((receiver) => receiver.onReject(orderData));
           }
-          break;
-
-        default:
           break;
       }
     });
@@ -648,6 +643,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
             .map(this._toInstrumentData),
         );
         break;
+
       case "option":
         receiver.onInstruments(
           this.instruments
@@ -658,6 +654,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
             .map(this._toInstrumentData),
         );
         break;
+
       default:
         receiver.onInstruments(this.instruments.map(this._toInstrumentData));
         break;
@@ -747,6 +744,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
           case ctp.OrderSubmitStatusType.CancelRejected:
           case ctp.OrderSubmitStatusType.ModifyRejected:
             return "rejected";
+
           default:
             return "canceled";
         }
@@ -760,6 +758,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     switch (orderPriceType) {
       case ctp.OrderPriceTypeType.LimitPrice:
         return "limit";
+
       default:
         return "market";
     }
@@ -769,6 +768,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     switch (direction) {
       case ctp.DirectionType.Buy:
         return "long";
+
       case ctp.DirectionType.Sell:
         return "short";
     }
@@ -778,8 +778,10 @@ export class Trader extends CTPProvider implements ITraderProvider {
     switch (offset) {
       case ctp.OffsetFlagType.Open:
         return "open";
+
       case ctp.OffsetFlagType.CloseToday:
         return "close-today";
+
       default:
         return "close";
     }
@@ -789,8 +791,10 @@ export class Trader extends CTPProvider implements ITraderProvider {
     switch (productClass) {
       case ctp.ProductClassType.Futures:
         return "future";
+
       case ctp.ProductClassType.Options:
         return "option";
+
       default:
         throw new Error(`Unsupported product class: ${productClass}`);
     }
