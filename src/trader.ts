@@ -26,8 +26,10 @@ import {
   SideType,
   TradeData,
   TradingAccount,
+  Writeable,
 } from "./typedef.js";
 import {
+  ICancelOrderResultReceiver,
   ICommissionRateReceiver,
   IInstrumentReceiver,
   IInstrumentsReceiver,
@@ -35,6 +37,7 @@ import {
   IMarginRateReceiver,
   IOrderReceiver,
   IOrdersReceiver,
+  IPlaceOrderResultReceiver,
   IPositionDetailsReceiver,
   IPositionReceiver,
   IPositionsReceiver,
@@ -49,7 +52,6 @@ type CommissionRateQuery = {
   receiver: ICommissionRateReceiver;
 };
 
-type Writeable<T> = { -readonly [P in keyof T]: Writeable<T[P]> };
 type PositionInfo = Writeable<PositionData>;
 
 export class Trader extends CTPProvider implements ITraderProvider {
@@ -720,6 +722,22 @@ export class Trader extends CTPProvider implements ITraderProvider {
 
     receiver.onOrders(orders);
   }
+
+  placeOrder(
+    symbol: string,
+    offset: OffsetType,
+    side: SideType,
+    volume: number,
+    price: number,
+    flag: OrderFlag,
+    receiver?: IPlaceOrderResultReceiver,
+  ) {
+    if (flag !== "limit") {
+      throw new Error("Only supports limit orders");
+    }
+  }
+
+  cancelOrder(order: OrderData, receiver?: ICancelOrderResultReceiver) {}
 
   private _calcOrderId(orderOrTrade: ctp.OrderField | ctp.TradeField) {
     const { ExchangeID, TraderID, OrderLocalID } = orderOrTrade;
