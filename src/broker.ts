@@ -36,6 +36,8 @@ import {
   ITraderProvider,
   ITradingAccountsReceiver,
   IPlaceOrderResultReceiver,
+  IPositionReceiver,
+  IPositionDetailsReceiver,
 } from "./interfaces.js";
 
 export class Broker implements IRuntimeEngine {
@@ -230,6 +232,10 @@ export class Broker implements IRuntimeEngine {
     return this.trader.queryInstrument(symbol, receiver);
   }
 
+  queryPosition(symbol: string, receiver: IPositionReceiver) {
+    return this.trader.queryPosition(symbol, receiver);
+  }
+
   queryInstruments(receiver: IInstrumentsReceiver) {
     return this.trader.queryInstruments(receiver);
   }
@@ -240,6 +246,10 @@ export class Broker implements IRuntimeEngine {
 
   queryPositions(receiver: IPositionsReceiver) {
     return this.trader.queryPositions(receiver);
+  }
+
+  queryPositionDetails(receiver: IPositionDetailsReceiver) {
+    return this.trader.queryPositionDetails(receiver);
   }
 
   queryOrders(receiver: IOrdersReceiver) {
