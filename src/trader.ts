@@ -254,38 +254,19 @@ export class Trader extends CTPProvider implements ITraderProvider {
           const symbol = this.symbols.get(instrumentId);
 
           if (symbol) {
-            let current = this.positions.get(instrumentId);
-
-            if (!current) {
-              current = {
-                symbol: symbol,
-                long: {
-                  today: { position: 0, frozen: 0 },
-                  history: { position: 0, frozen: 0 },
-                  pending: 0,
-                },
-                short: {
-                  today: { position: 0, frozen: 0 },
-                  history: { position: 0, frozen: 0 },
-                  pending: 0,
-                },
-              };
-
-              this.positions.set(instrumentId, current);
-            }
-
+            let posInfo = this._ensurePositionInfo(symbol);
             const ExchangeSH = ["SHFE", "INE"];
 
             switch (position.PosiDirection) {
               case ctp.PosiDirectionType.Long:
                 if (position.PositionDate === ctp.PositionDateType.Today) {
                   if (ExchangeSH.includes(position.ExchangeID)) {
-                    current.long.today.position += position.TodayPosition;
+                    posInfo.long.today.position += position.TodayPosition;
                   } else {
-                    current.long.today.position += position.Position;
+                    posInfo.long.today.position += position.Position;
                   }
                 } else {
-                  current.long.history.position +=
+                  posInfo.long.history.position +=
                     position.Position - position.TodayPosition;
                 }
                 break;
@@ -293,12 +274,12 @@ export class Trader extends CTPProvider implements ITraderProvider {
               case ctp.PosiDirectionType.Short:
                 if (position.PositionDate === ctp.PositionDateType.Today) {
                   if (ExchangeSH.includes(position.ExchangeID)) {
-                    current.short.today.position += position.TodayPosition;
+                    posInfo.short.today.position += position.TodayPosition;
                   } else {
-                    current.short.today.position += position.Position;
+                    posInfo.short.today.position += position.Position;
                   }
                 } else {
-                  current.short.history.position +=
+                  posInfo.short.history.position +=
                     position.Position - position.TodayPosition;
                 }
                 break;
@@ -605,32 +586,35 @@ export class Trader extends CTPProvider implements ITraderProvider {
   }
 
   queryPosition(symbol: string, receiver: IPositionReceiver) {
-    const instrumentId = this._symbolToInstrumentId(symbol);
-    const position = this.positions.get(instrumentId);
+    const position = this.positions.get(symbol);
 
     if (position) {
       receiver.onPosition(this._toPositionData(position));
-    } else {
-      if (this.symbols.has(instrumentId)) {
-        receiver.onPosition(
-          Object.freeze({
-            symbol: symbol,
-            long: Object.freeze({
-              today: Object.freeze({ position: 0, frozen: 0 }),
-              history: Object.freeze({ position: 0, frozen: 0 }),
-              pending: 0,
-            }),
-            short: Object.freeze({
-              today: Object.freeze({ position: 0, frozen: 0 }),
-              history: Object.freeze({ position: 0, frozen: 0 }),
-              pending: 0,
-            }),
-          }),
-        );
-      } else {
-        receiver.onPosition(undefined);
-      }
+      return;
     }
+
+    const instrumentId = this._symbolToInstrumentId(symbol);
+
+    if (!this.symbols.has(instrumentId)) {
+      receiver.onPosition(undefined);
+      return;
+    }
+
+    receiver.onPosition(
+      Object.freeze({
+        symbol: symbol,
+        long: Object.freeze({
+          today: Object.freeze({ position: 0, frozen: 0 }),
+          history: Object.freeze({ position: 0, frozen: 0 }),
+          pending: 0,
+        }),
+        short: Object.freeze({
+          today: Object.freeze({ position: 0, frozen: 0 }),
+          history: Object.freeze({ position: 0, frozen: 0 }),
+          pending: 0,
+        }),
+      }),
+    );
   }
 
   queryInstruments(receiver: IInstrumentsReceiver, type?: ProductType) {
@@ -816,6 +800,30 @@ export class Trader extends CTPProvider implements ITraderProvider {
       default:
         throw new Error(`Unsupported product class: ${productClass}`);
     }
+  }
+
+  private _ensurePositionInfo(symbol: string) {
+    let position = this.positions.get(symbol);
+
+    if (!position) {
+      position = {
+        symbol: symbol,
+        long: {
+          today: { position: 0, frozen: 0 },
+          history: { position: 0, frozen: 0 },
+          pending: 0,
+        },
+        short: {
+          today: { position: 0, frozen: 0 },
+          history: { position: 0, frozen: 0 },
+          pending: 0,
+        },
+      };
+
+      this.positions.set(symbol, position);
+    }
+
+    return position;
   }
 
   private _toTradeData(trade: ctp.TradeField): TradeData {
