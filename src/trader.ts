@@ -250,8 +250,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
         }
 
         if (position) {
-          const instrumentId = position.InstrumentID;
-          const symbol = this.symbols.get(instrumentId);
+          const symbol = this.symbols.get(position.InstrumentID);
 
           if (symbol) {
             let posInfo = this._ensurePositionInfo(symbol);
@@ -330,6 +329,26 @@ export class Trader extends CTPProvider implements ITraderProvider {
         case "submitted":
           {
             const orderData = this._toOrderData(order);
+            const symbol = this.symbols.get(order.InstrumentID);
+
+            if (symbol) {
+              if (orderData.offset === "open") {
+                this._recordPending(
+                  symbol,
+                  orderData.side,
+                  orderData.offset,
+                  orderData.volume,
+                );
+              } else {
+                this._freezePosition(
+                  symbol,
+                  orderData.side,
+                  orderData.offset,
+                  orderData.volume,
+                );
+              }
+            }
+
             this.receivers.forEach((receiver) => receiver.onEntrust(orderData));
           }
           break;
@@ -337,6 +356,26 @@ export class Trader extends CTPProvider implements ITraderProvider {
         case "canceled":
           {
             const orderData = this._toOrderData(order);
+            const symbol = this.symbols.get(order.InstrumentID);
+
+            if (symbol) {
+              if (orderData.offset === "open") {
+                this._recoverPending(
+                  symbol,
+                  orderData.side,
+                  orderData.offset,
+                  orderData.volume,
+                );
+              } else {
+                this._unfreezePosition(
+                  symbol,
+                  orderData.side,
+                  orderData.offset,
+                  orderData.volume,
+                );
+              }
+            }
+
             this.receivers.forEach((receiver) => receiver.onCancel(orderData));
           }
           break;
@@ -367,6 +406,16 @@ export class Trader extends CTPProvider implements ITraderProvider {
       if (order) {
         const orderData = this._toOrderData(order);
         const tradeData = this._toTradeData(trade);
+        const symbol = this.symbols.get(order.InstrumentID);
+
+        if (symbol) {
+          this._calcPosition(
+            symbol,
+            orderData.side,
+            orderData.offset,
+            orderData.volume,
+          );
+        }
 
         this.receivers.forEach((receiver) =>
           receiver.onTrade(orderData, tradeData),
@@ -824,6 +873,287 @@ export class Trader extends CTPProvider implements ITraderProvider {
     }
 
     return position;
+  }
+
+  private _calcPosition(
+    symbol: string,
+    side: SideType,
+    offset: OffsetType,
+    volume: number,
+  ) {
+    const position = this._ensurePositionInfo(symbol);
+
+    switch (offset) {
+      case "open":
+        switch (side) {
+          case "long":
+            position.long.today.position += volume;
+
+            if (position.long.pending > volume) {
+              position.long.pending -= volume;
+            } else {
+              position.long.pending = 0;
+            }
+            break;
+
+          case "short":
+            position.short.today.position += volume;
+
+            if (position.short.pending > volume) {
+              position.short.pending -= volume;
+            } else {
+              position.short.pending = 0;
+            }
+            break;
+        }
+        break;
+
+      case "close":
+        switch (side) {
+          case "long":
+            if (position.long.history.position > volume) {
+              position.long.history.position -= volume;
+            } else {
+              const rest = volume - position.long.history.position;
+              position.long.history.position -= position.long.history.position;
+
+              if (rest > 0) {
+                if (position.long.today.position > rest) {
+                  position.long.today.position -= rest;
+                } else {
+                  position.long.today.position = 0;
+                }
+              }
+            }
+
+            if (position.long.history.frozen > volume) {
+              position.long.history.frozen -= volume;
+            } else {
+              const rest = volume - position.long.history.frozen;
+              position.long.history.frozen -= position.long.history.frozen;
+
+              if (rest > 0) {
+                if (position.long.today.frozen > rest) {
+                  position.long.today.frozen -= rest;
+                } else {
+                  position.long.today.frozen = 0;
+                }
+              }
+            }
+            break;
+
+          case "short":
+            if (position.short.history.position > volume) {
+              position.short.history.position -= volume;
+            } else {
+              const rest = volume - position.short.history.position;
+              position.short.history.position -=
+                position.short.history.position;
+
+              if (rest > 0) {
+                if (position.short.today.position > rest) {
+                  position.short.today.position -= rest;
+                } else {
+                  position.short.today.position = 0;
+                }
+              }
+            }
+
+            if (position.short.history.frozen > volume) {
+              position.short.history.frozen -= volume;
+            } else {
+              const rest = volume - position.short.history.frozen;
+              position.short.history.frozen -= position.short.history.frozen;
+
+              if (rest > 0) {
+                if (position.short.today.frozen > rest) {
+                  position.short.today.frozen -= rest;
+                } else {
+                  position.short.today.frozen = 0;
+                }
+              }
+            }
+            break;
+        }
+        break;
+
+      case "close-today":
+        switch (side) {
+          case "long":
+            if (position.long.today.position > volume) {
+              position.long.today.position -= volume;
+            } else {
+              position.long.today.position = 0;
+            }
+
+            if (position.long.today.frozen > volume) {
+              position.long.today.frozen -= volume;
+            } else {
+              position.long.today.frozen = 0;
+            }
+            break;
+
+          case "short":
+            if (position.short.today.position > volume) {
+              position.short.today.position -= volume;
+            } else {
+              position.short.today.position = 0;
+            }
+
+            if (position.short.today.frozen > volume) {
+              position.short.today.frozen -= volume;
+            } else {
+              position.short.today.frozen = 0;
+            }
+            break;
+        }
+        break;
+    }
+  }
+
+  private _recordPending(
+    symbol: string,
+    side: SideType,
+    offset: OffsetType,
+    volume: number,
+  ) {
+    if (offset !== "open") {
+      return;
+    }
+
+    const position = this._ensurePositionInfo(symbol);
+
+    switch (side) {
+      case "long":
+        position.long.pending += volume;
+        break;
+
+      case "short":
+        position.short.pending += volume;
+        break;
+    }
+  }
+
+  private _recoverPending(
+    symbol: string,
+    side: SideType,
+    offset: OffsetType,
+    volume: number,
+  ) {
+    if (offset !== "open") {
+      return;
+    }
+
+    const position = this.positions.get(symbol);
+
+    if (!position) {
+      return;
+    }
+
+    switch (side) {
+      case "long":
+        position.long.pending -= volume;
+        break;
+
+      case "short":
+        position.short.pending -= volume;
+        break;
+    }
+  }
+
+  private _freezePosition(
+    symbol: string,
+    side: SideType,
+    offset: OffsetType,
+    volume: number,
+  ) {
+    const position = this.positions.get(symbol);
+
+    if (!position) {
+      return;
+    }
+
+    switch (offset) {
+      case "close":
+        switch (side) {
+          case "long":
+            position.long.history.frozen += volume;
+            break;
+
+          case "short":
+            position.short.history.frozen += volume;
+            break;
+        }
+        break;
+
+      case "close-today":
+        switch (side) {
+          case "long":
+            position.long.today.frozen += volume;
+            break;
+
+          case "short":
+            position.short.today.frozen += volume;
+            break;
+        }
+        break;
+    }
+  }
+
+  private _unfreezePosition(
+    symbol: string,
+    side: SideType,
+    offset: OffsetType,
+    volume: number,
+  ) {
+    const position = this.positions.get(symbol);
+
+    if (!position) {
+      return;
+    }
+
+    switch (offset) {
+      case "close":
+        switch (side) {
+          case "long":
+            if (position.long.history.frozen > volume) {
+              position.long.history.frozen -= volume;
+            } else {
+              position.long.history.frozen = 0;
+            }
+
+            break;
+
+          case "short":
+            if (position.short.history.frozen > volume) {
+              position.short.history.frozen -= volume;
+            } else {
+              position.short.history.frozen = 0;
+            }
+            break;
+        }
+        break;
+
+      case "close-today":
+        switch (side) {
+          case "long":
+            if (position.long.today.frozen > volume) {
+              position.long.today.frozen -= volume;
+            } else {
+              position.long.today.frozen = 0;
+            }
+            break;
+
+          case "short":
+            if (position.short.today.frozen > volume) {
+              position.short.today.frozen -= volume;
+            } else {
+              position.short.today.frozen = 0;
+            }
+            break;
+        }
+        break;
+    }
   }
 
   private _toTradeData(trade: ctp.TradeField): TradeData {
