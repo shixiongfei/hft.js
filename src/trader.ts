@@ -590,9 +590,9 @@ export class Trader extends CTPProvider implements ITraderProvider {
 
     this.commRatesQueue.push({ symbol, receiver });
 
-    if (this.commRatesQueue.size() === 1 && this.traderApi) {
+    if (this.commRatesQueue.size() === 1) {
       this._withRetry(() =>
-        this.traderApi!.reqQryInstrumentCommissionRate({
+        this.traderApi?.reqQryInstrumentCommissionRate({
           ...this.userInfo,
           InstrumentID: instrumentId,
         }),
@@ -611,9 +611,9 @@ export class Trader extends CTPProvider implements ITraderProvider {
 
     this.marginRatesQueue.push({ symbol, receiver });
 
-    if (this.marginRatesQueue.size() === 1 && this.traderApi) {
+    if (this.marginRatesQueue.size() === 1) {
       this._withRetry(() =>
-        this.traderApi!.reqQryInstrumentMarginRate({
+        this.traderApi?.reqQryInstrumentMarginRate({
           ...this.userInfo,
           HedgeFlag: ctp.HedgeFlagType.Speculation,
           InstrumentID: instrumentId,
@@ -712,7 +712,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     this.accountsQueue.push(receiver);
     this.accounts.splice(0, this.accounts.length);
 
-    this._withRetry(() => this.traderApi!.reqQryTradingAccount(this.userInfo));
+    this._withRetry(() => this.traderApi?.reqQryTradingAccount(this.userInfo));
   }
 
   queryPositionDetails(receiver: IPositionDetailsReceiver) {
@@ -732,7 +732,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     this.positionDetails.splice(0, this.positionDetails.length);
 
     this._withRetry(() =>
-      this.traderApi!.reqQryInvestorPositionDetail(this.userInfo),
+      this.traderApi?.reqQryInvestorPositionDetail(this.userInfo),
     );
   }
 
@@ -763,14 +763,52 @@ export class Trader extends CTPProvider implements ITraderProvider {
     volume: number,
     price: number,
     flag: OrderFlag,
-    receiver?: IPlaceOrderResultReceiver,
+    receiver: IPlaceOrderResultReceiver,
   ) {
     if (flag !== "limit") {
-      throw new Error("Only supports limit orders");
+      receiver.onPlaceOrderError("Only Supports Limit Order");
+      return;
     }
   }
 
-  cancelOrder(order: OrderData, receiver?: ICancelOrderResultReceiver) {}
+  cancelOrder(order: OrderData, receiver: ICancelOrderResultReceiver) {
+    const current = this.orders.get(order.id);
+
+    if (!current) {
+      receiver.onCancelError("Order Not Found");
+      return;
+    }
+
+    if (order.cancelTime) {
+      receiver.onCancelError("Already Canceled");
+      return;
+    }
+
+    this._withRetry(() =>
+      this.traderApi?.reqOrderAction({
+        ...this.userInfo,
+        InstrumentID: current.InstrumentID,
+        FrontID: current.FrontID,
+        SessionID: current.SessionID,
+        OrderRef: current.OrderRef,
+        ExchangeID: current.ExchangeID,
+        OrderSysID: current.OrderSysID,
+        ActionFlag: ctp.ActionFlagType.Delete,
+      }),
+    ).then((requestId) => {
+      if (!requestId) {
+        receiver.onCancelError("Request Failed");
+        return;
+      }
+
+      if (requestId < 0) {
+        receiver.onCancelError("Request Error");
+        return;
+      }
+
+      receiver.onCancelSuccess();
+    });
+  }
 
   private _calcOrderId(orderOrTrade: ctp.OrderField | ctp.TradeField) {
     const { ExchangeID, TraderID, OrderLocalID } = orderOrTrade;

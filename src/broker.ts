@@ -140,7 +140,7 @@ export class Broker implements IRuntimeEngine {
     volume: number,
     price: number,
     flag: OrderFlag,
-    receiver?: IPlaceOrderResultReceiver,
+    receiver: IPlaceOrderResultReceiver,
   ) {
     for (const placeOrderRiskManager of this.placeOrderRiskManagers) {
       const result = placeOrderRiskManager.onPlaceOrder(
@@ -155,20 +155,12 @@ export class Broker implements IRuntimeEngine {
       if (typeof result === "boolean") {
         if (!result) {
           strategy.onRisk("place-order-risk");
-
-          if (receiver) {
-            receiver.onPlaceOrderError("risk rejected");
-          }
-
+          receiver.onPlaceOrderError("Risk Rejected");
           return;
         }
       } else {
         strategy.onRisk("place-order-risk", result);
-
-        if (receiver) {
-          receiver.onPlaceOrderError("risk rejected");
-        }
-
+        receiver.onPlaceOrderError("Risk Rejected");
         return;
       }
     }
@@ -187,7 +179,7 @@ export class Broker implements IRuntimeEngine {
   cancelOrder(
     strategy: IStrategy,
     order: OrderData,
-    receiver?: ICancelOrderResultReceiver,
+    receiver: ICancelOrderResultReceiver,
   ) {
     for (const cancelOrderRiskManager of this.cancelOrderRiskManagers) {
       const result = cancelOrderRiskManager.onCancelOrder(order);
@@ -195,20 +187,12 @@ export class Broker implements IRuntimeEngine {
       if (typeof result === "boolean") {
         if (!result) {
           strategy.onRisk("cancel-order-risk");
-
-          if (receiver) {
-            receiver.onCancelError("risk rejected");
-          }
-
+          receiver.onCancelError("Risk Rejected");
           return;
         }
       } else {
         strategy.onRisk("cancel-order-risk", result);
-
-        if (receiver) {
-          receiver.onCancelError("risk rejected");
-        }
-
+        receiver.onCancelError("Risk Rejected");
         return;
       }
     }

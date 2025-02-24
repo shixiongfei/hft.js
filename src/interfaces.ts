@@ -188,13 +188,10 @@ export interface ITraderProvider extends IProvider, IOrderEmitter, IQueryApi {
     volume: number,
     price: number,
     flag: OrderFlag,
-    receiver?: IPlaceOrderResultReceiver,
+    receiver: IPlaceOrderResultReceiver,
   ) => void;
 
-  cancelOrder: (
-    order: OrderData,
-    receiver?: ICancelOrderResultReceiver,
-  ) => void;
+  cancelOrder: (order: OrderData, receiver: ICancelOrderResultReceiver) => void;
 }
 
 export interface IRuntimeEngine
@@ -215,12 +212,12 @@ export interface IRuntimeEngine
     volume: number,
     price: number,
     flag: OrderFlag,
-    receiver?: IPlaceOrderResultReceiver,
+    receiver: IPlaceOrderResultReceiver,
   ) => void;
 
   cancelOrder: (
     strategy: IStrategy,
     order: OrderData,
-    receiver?: ICancelOrderResultReceiver,
+    receiver: ICancelOrderResultReceiver,
   ) => void;
 }
