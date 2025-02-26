@@ -187,12 +187,12 @@ export class Broker implements IRuntimeEngine {
       if (typeof result === "boolean") {
         if (!result) {
           strategy.onRisk("cancel-order-risk");
-          receiver.onCancelError("Risk Rejected");
+          receiver.onCancelOrderError("Risk Rejected");
           return;
         }
       } else {
         strategy.onRisk("cancel-order-risk", result);
-        receiver.onCancelError("Risk Rejected");
+        receiver.onCancelOrderError("Risk Rejected");
         return;
       }
     }

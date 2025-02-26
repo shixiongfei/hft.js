@@ -171,13 +171,13 @@ export interface IMarketProvider
 }
 
 export type IPlaceOrderResultReceiver = {
-  onPlaceOrderSuccess: (receiptId: string) => void;
+  onPlaceOrderSent: (receiptId: string) => void;
   onPlaceOrderError: (reason: string) => void;
 };
 
 export type ICancelOrderResultReceiver = {
-  onCancelSuccess: () => void;
-  onCancelError: (reason: string) => void;
+  onCancelOrderSent: () => void;
+  onCancelOrderError: (reason: string) => void;
 };
 
 export interface ITraderProvider extends IProvider, IOrderEmitter, IQueryApi {

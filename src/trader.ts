@@ -72,6 +72,8 @@ export class Trader extends CTPProvider implements ITraderProvider {
   private readonly trades: Map<string, ctp.TradeField[]>;
   private readonly marginRates: Map<string, ctp.InstrumentMarginRateField>;
   private readonly commRates: Map<string, ctp.InstrumentCommissionRateField>;
+  private readonly placeOrders: Map<number, IPlaceOrderResultReceiver>;
+  private readonly cancelOrders: Map<number, ICancelOrderResultReceiver>;
   private readonly marginRatesQueue: Denque<MarginRateQuery>;
   private readonly commRatesQueue: Denque<CommissionRateQuery>;
   private readonly accountsQueue: Denque<ITradingAccountsReceiver>;
@@ -99,6 +101,8 @@ export class Trader extends CTPProvider implements ITraderProvider {
     this.trades = new Map();
     this.marginRates = new Map();
     this.commRates = new Map();
+    this.placeOrders = new Map();
+    this.cancelOrders = new Map();
     this.marginRatesQueue = new Denque();
     this.commRatesQueue = new Denque();
     this.accountsQueue = new Denque();
@@ -113,6 +117,8 @@ export class Trader extends CTPProvider implements ITraderProvider {
     this.traderApi = ctp.createTrader(this.flowPath, this.frontAddrs);
 
     this.traderApi.on(ctp.TraderEvent.FrontConnected, () => {
+      this.placeOrders.clear();
+      this.cancelOrders.clear();
       this._withRetry(() => this.traderApi!.reqAuthenticate(this.userInfo));
     });
 
@@ -545,6 +551,40 @@ export class Trader extends CTPProvider implements ITraderProvider {
       },
     );
 
+    this.traderApi.on<ctp.InputOrderField>(
+      ctp.TraderEvent.RspOrderInsert,
+      (order, options) => {
+        if (options.rspInfo && order && options.requestId && options.isLast) {
+          const receiver = this.placeOrders.get(options.requestId);
+
+          if (receiver) {
+            this.placeOrders.delete(options.requestId);
+
+            receiver.onPlaceOrderError(
+              `${options.rspInfo.ErrorID}: ${options.rspInfo.ErrorMsg}`,
+            );
+          }
+        }
+      },
+    );
+
+    this.traderApi.on<ctp.InputOrderActionField>(
+      ctp.TraderEvent.RspOrderAction,
+      (order, options) => {
+        if (options.rspInfo && order && options.requestId && options.isLast) {
+          const receiver = this.cancelOrders.get(options.requestId);
+
+          if (receiver) {
+            this.cancelOrders.delete(options.requestId);
+
+            receiver.onCancelOrderError(
+              `${options.rspInfo.ErrorID}: ${options.rspInfo.ErrorMsg}`,
+            );
+          }
+        }
+      },
+    );
+
     return true;
   }
 
@@ -775,12 +815,12 @@ export class Trader extends CTPProvider implements ITraderProvider {
     const current = this.orders.get(order.id);
 
     if (!current) {
-      receiver.onCancelError("Order Not Found");
+      receiver.onCancelOrderError("Order Not Found");
       return;
     }
 
     if (order.cancelTime) {
-      receiver.onCancelError("Already Canceled");
+      receiver.onCancelOrderError("Already Canceled");
       return;
     }
 
@@ -797,16 +837,17 @@ export class Trader extends CTPProvider implements ITraderProvider {
       }),
     ).then((requestId) => {
       if (!requestId) {
-        receiver.onCancelError("Request Failed");
+        receiver.onCancelOrderError("Request Failed");
         return;
       }
 
       if (requestId < 0) {
-        receiver.onCancelError("Request Error");
+        receiver.onCancelOrderError("Request Error");
         return;
       }
 
-      receiver.onCancelSuccess();
+      this.cancelOrders.set(requestId, receiver);
+      receiver.onCancelOrderSent();
     });
   }
 
