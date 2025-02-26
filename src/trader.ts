@@ -117,9 +117,12 @@ export class Trader extends CTPProvider implements ITraderProvider {
     this.traderApi = ctp.createTrader(this.flowPath, this.frontAddrs);
 
     this.traderApi.on(ctp.TraderEvent.FrontConnected, () => {
+      this._withRetry(() => this.traderApi!.reqAuthenticate(this.userInfo));
+    });
+
+    this.traderApi.on(ctp.TraderEvent.FrontDisconnected, () => {
       this.placeOrders.clear();
       this.cancelOrders.clear();
-      this._withRetry(() => this.traderApi!.reqAuthenticate(this.userInfo));
     });
 
     this.traderApi.on<ctp.RspAuthenticateField>(
@@ -847,6 +850,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
       }
 
       this.cancelOrders.set(requestId, receiver);
+
       receiver.onCancelOrderSent();
     });
   }
