@@ -11,7 +11,7 @@
 
 import ctp from "napi-ctp";
 import { CTPProvider, CTPUserInfo } from "./provider.js";
-import { OrderBook, TickData } from "./typedef.js";
+import { OrderBook, ProductType, TickData } from "./typedef.js";
 import {
   ILifecycleListener,
   IMarketProvider,
@@ -25,6 +25,7 @@ const isValidVolume = (x: number) => x !== Number.MAX_VALUE && x !== 0;
 export class Market extends CTPProvider implements IMarketProvider {
   private marketApi?: ctp.MarketData;
   private recorder?: IMarketRecorderReceiver;
+  private recorderType?: ProductType;
   private readonly recordings: Set<string>;
   private readonly symbols: Map<string, string>;
   private readonly subscribers: Map<string, ITickReceiver[]>;
@@ -40,12 +41,17 @@ export class Market extends CTPProvider implements IMarketProvider {
     this.subscribers = new Map();
   }
 
-  get hasRecorder() {
+  getRecorderType() {
+    return this.recorderType;
+  }
+
+  hasRecorder() {
     return !!this.recorder;
   }
 
-  setRecorder(receiver?: IMarketRecorderReceiver) {
+  setRecorder(receiver?: IMarketRecorderReceiver, type?: ProductType) {
     this.recorder = receiver;
+    this.recorderType = type;
   }
 
   open(lifecycle: ILifecycleListener) {
@@ -237,25 +243,59 @@ export class Market extends CTPProvider implements IMarketProvider {
     lifecycle.onClose();
   }
 
-  subscribe(symbols: string[], receiver?: ITickReceiver) {
+  startRecorder(symbols: string[]) {
     const instrumentIds = new Set<string>();
 
     symbols.forEach((symbol) => {
       const instrumentId = this._symbolToInstrumentId(symbol);
 
-      if (!receiver) {
-        if (!this.recordings.has(instrumentId)) {
-          this.recordings.add(instrumentId);
-
-          if (!this.subscribers.has(instrumentId)) {
-            this.symbols.set(instrumentId, symbol);
-            instrumentIds.add(instrumentId);
-          }
-        }
-
+      if (this.recordings.has(instrumentId)) {
         return;
       }
 
+      this.recordings.add(instrumentId);
+
+      if (!this.subscribers.has(instrumentId)) {
+        this.symbols.set(instrumentId, symbol);
+        instrumentIds.add(instrumentId);
+      }
+    });
+
+    if (instrumentIds.size > 0) {
+      this._withRetry(() =>
+        this.marketApi?.subscribeMarketData(Array.from(instrumentIds)),
+      );
+    }
+  }
+
+  stopRecorder() {
+    if (this.recordings.size === 0) {
+      return;
+    }
+
+    const instrumentIds = new Set<string>();
+
+    this.recordings.forEach((instrumentId) => {
+      if (!this.subscribers.has(instrumentId)) {
+        this.symbols.delete(instrumentId);
+        instrumentIds.add(instrumentId);
+      }
+    });
+
+    this.recordings.clear();
+
+    if (instrumentIds.size > 0) {
+      this._withRetry(() =>
+        this.marketApi?.unsubscribeMarketData(Array.from(instrumentIds)),
+      );
+    }
+  }
+
+  subscribe(symbols: string[], receiver: ITickReceiver) {
+    const instrumentIds = new Set<string>();
+
+    symbols.forEach((symbol) => {
+      const instrumentId = this._symbolToInstrumentId(symbol);
       const receivers = this.subscribers.get(instrumentId);
 
       if (receivers) {
@@ -279,25 +319,11 @@ export class Market extends CTPProvider implements IMarketProvider {
     }
   }
 
-  unsubscribe(symbols: string[], receiver?: ITickReceiver) {
+  unsubscribe(symbols: string[], receiver: ITickReceiver) {
     const instrumentIds = new Set<string>();
 
     symbols.forEach((symbol) => {
       const instrumentId = this._symbolToInstrumentId(symbol);
-
-      if (!receiver) {
-        if (this.recordings.has(instrumentId)) {
-          this.recordings.delete(instrumentId);
-
-          if (!this.subscribers.has(instrumentId)) {
-            this.symbols.delete(instrumentId);
-            instrumentIds.add(instrumentId);
-          }
-        }
-
-        return;
-      }
-
       const receivers = this.subscribers.get(instrumentId);
 
       if (!receivers) {

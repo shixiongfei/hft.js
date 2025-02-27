@@ -11,6 +11,7 @@
 
 import fs from "node:fs";
 import { exit } from "node:process";
+import ctp from "napi-ctp";
 import * as hft from ".";
 
 export type Configure = {
@@ -43,7 +44,7 @@ if (!existsFile(config.FlowMdPath)) {
 }
 
 class Strategy implements hft.IStrategy, hft.ITickReceiver {
-  readonly symbol = "rb2505.SHFE";
+  readonly symbol = "sc2504.SHFE";
 
   onInit(subscriber: hft.ITickSubscriber) {
     subscriber.subscribe([this.symbol], this);
@@ -80,6 +81,15 @@ const market = hft.createMarket(
   config.FlowMdPath,
   config.FrontMdAddrs,
   config.UserInfo,
+);
+
+market.setRecorder(
+  {
+    onMarketData(marketData: ctp.DepthMarketDataField) {
+      console.log(marketData.InstrumentID, marketData.LastPrice);
+    },
+  },
+  "future",
 );
 
 const broker = hft.createBroker(trader, market, {

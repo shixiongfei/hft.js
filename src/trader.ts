@@ -507,7 +507,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
         }
 
         if (options.isLast) {
-          const accounts = this.accounts.map(this._toTradingAccount);
+          const accounts = this.accounts.map(this._toTradingAccount, this);
           const receivers = this.accountsQueue.toArray();
 
           receivers.forEach((receiver) => receiver.onTradingAccounts(accounts));
@@ -718,7 +718,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
               (instrument) =>
                 instrument.ProductClass === ctp.ProductClassType.Futures,
             )
-            .map(this._toInstrumentData),
+            .map(this._toInstrumentData, this),
         );
         break;
 
@@ -729,12 +729,14 @@ export class Trader extends CTPProvider implements ITraderProvider {
               (instrument) =>
                 instrument.ProductClass === ctp.ProductClassType.Options,
             )
-            .map(this._toInstrumentData),
+            .map(this._toInstrumentData, this),
         );
         break;
 
       default:
-        receiver.onInstruments(this.instruments.map(this._toInstrumentData));
+        receiver.onInstruments(
+          this.instruments.map(this._toInstrumentData, this),
+        );
         break;
     }
   }
@@ -748,7 +750,9 @@ export class Trader extends CTPProvider implements ITraderProvider {
     const elapsed = Date.now() - this.accountsQueryTime;
 
     if (elapsed < 3000) {
-      receiver.onTradingAccounts(this.accounts.map(this._toTradingAccount));
+      receiver.onTradingAccounts(
+        this.accounts.map(this._toTradingAccount, this),
+      );
       return;
     }
 
@@ -766,7 +770,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
 
     if (!this.positionDetailsChanged) {
       receiver.onPositionDetails(
-        this.positionDetails.map(this._toPositionDetail),
+        this.positionDetails.map(this._toPositionDetail, this),
       );
       return;
     }
@@ -1343,7 +1347,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
       volume: order.VolumeTotalOriginal,
       traded: order.VolumeTotalOriginal - order.VolumeTotal,
       status: this._calcOrderStatus(order),
-      trades: trades.map(this._toTradeData),
+      trades: trades.map(this._toTradeData, this),
       cancelTime:
         order.CancelTime !== "" ? this._parseTime(order.CancelTime) : undefined,
     });

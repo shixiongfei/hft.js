@@ -82,11 +82,11 @@ export interface ITickReceiver {
 }
 
 export interface ITickSubscriber {
-  subscribe: (symbols: string[], receiver?: ITickReceiver) => void;
+  subscribe: (symbols: string[], receiver: ITickReceiver) => void;
 }
 
 export interface ITickUnsubscriber {
-  unsubscribe: (symbols: string[], receiver?: ITickReceiver) => void;
+  unsubscribe: (symbols: string[], receiver: ITickReceiver) => void;
 }
 
 export interface IStrategy extends IRiskManagerReceiver, IOrderReceiver {
@@ -160,14 +160,18 @@ export interface IQueryApi {
 }
 
 export interface IMarketRecorderReceiver {
-  onMarketData: <T>(marketData: T) => void;
+  onMarketData: (marketData: any) => void;
 }
 
 export interface IMarketProvider
   extends IProvider,
     ITickSubscriber,
     ITickUnsubscriber {
-  setRecorder: (receiver?: IMarketRecorderReceiver) => void;
+  getRecorderType: () => ProductType | undefined;
+  hasRecorder: () => boolean;
+  setRecorder: (receiver?: IMarketRecorderReceiver, type?: ProductType) => void;
+  startRecorder: (symbols: string[]) => void;
+  stopRecorder: () => void;
 }
 
 export type IPlaceOrderResultReceiver = {

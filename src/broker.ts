@@ -53,10 +53,26 @@ export class Broker implements IRuntimeEngine {
 
     this.marketLifecycle = {
       onOpen: () => {
+        if (this.market.hasRecorder()) {
+          this.trader.queryInstruments(
+            {
+              onInstruments: (instruments) => {
+                if (instruments) {
+                  this.market.startRecorder(
+                    instruments.map((instrument) => instrument.symbol),
+                  );
+                }
+              },
+            },
+            this.market.getRecorderType(),
+          );
+        }
+
         this.strategies.forEach((strategy) => strategy.onInit(this));
       },
       onClose: () => {
         this.strategies.forEach((strategy) => strategy.onDestroy(this));
+        this.market.stopRecorder();
       },
       onError: (error: ErrorType, message: string) => {
         if (errorReceiver) {
@@ -118,11 +134,11 @@ export class Broker implements IRuntimeEngine {
     }
   }
 
-  subscribe(symbols: string[], receiver?: ITickReceiver) {
+  subscribe(symbols: string[], receiver: ITickReceiver) {
     return this.market.subscribe(symbols, receiver);
   }
 
-  unsubscribe(symbols: string[], receiver?: ITickReceiver) {
+  unsubscribe(symbols: string[], receiver: ITickReceiver) {
     return this.market.unsubscribe(symbols, receiver);
   }
 
