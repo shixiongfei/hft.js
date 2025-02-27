@@ -159,7 +159,7 @@ export interface IQueryApi {
   queryOrders: (receiver: IOrdersReceiver) => void;
 }
 
-export interface IMarketRecorder {
+export interface IMarketRecorderReceiver {
   onMarketData: <T>(marketData: T) => void;
 }
 
@@ -167,7 +167,7 @@ export interface IMarketProvider
   extends IProvider,
     ITickSubscriber,
     ITickUnsubscriber {
-  setRecorder: (recorder?: IMarketRecorder) => void;
+  setRecorder: (receiver?: IMarketRecorderReceiver) => void;
 }
 
 export type IPlaceOrderResultReceiver = {

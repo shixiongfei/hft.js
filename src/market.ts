@@ -15,7 +15,7 @@ import { OrderBook, TickData } from "./typedef.js";
 import {
   ILifecycleListener,
   IMarketProvider,
-  IMarketRecorder,
+  IMarketRecorderReceiver,
   ITickReceiver,
 } from "./interfaces.js";
 
@@ -24,7 +24,7 @@ const isValidVolume = (x: number) => x !== Number.MAX_VALUE && x !== 0;
 
 export class Market extends CTPProvider implements IMarketProvider {
   private marketApi?: ctp.MarketData;
-  private recorder?: IMarketRecorder;
+  private recorder?: IMarketRecorderReceiver;
   private readonly recordings: Set<string>;
   private readonly symbols: Map<string, string>;
   private readonly subscribers: Map<string, ITickReceiver[]>;
@@ -44,8 +44,8 @@ export class Market extends CTPProvider implements IMarketProvider {
     return !!this.recorder;
   }
 
-  setRecorder(recorder?: IMarketRecorder) {
-    this.recorder = recorder;
+  setRecorder(receiver?: IMarketRecorderReceiver) {
+    this.recorder = receiver;
   }
 
   open(lifecycle: ILifecycleListener) {
@@ -272,9 +272,9 @@ export class Market extends CTPProvider implements IMarketProvider {
       }
     });
 
-    if (instrumentIds.size > 0 && this.marketApi) {
+    if (instrumentIds.size > 0) {
       this._withRetry(() =>
-        this.marketApi!.subscribeMarketData(Array.from(instrumentIds)),
+        this.marketApi?.subscribeMarketData(Array.from(instrumentIds)),
       );
     }
   }
@@ -324,9 +324,9 @@ export class Market extends CTPProvider implements IMarketProvider {
       }
     });
 
-    if (instrumentIds.size > 0 && this.marketApi) {
+    if (instrumentIds.size > 0) {
       this._withRetry(() =>
-        this.marketApi!.unsubscribeMarketData(Array.from(instrumentIds)),
+        this.marketApi?.unsubscribeMarketData(Array.from(instrumentIds)),
       );
     }
   }

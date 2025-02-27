@@ -1,0 +1,26 @@
+{
+  "FlowTdPath": "./flow_td/",
+  "FlowMdPath": "./flow_md/",
+
+  "FrontTdAddrs": [
+    "tcp://180.168.146.187:10201",
+    "tcp://180.168.146.187:10202",
+    "tcp://218.202.237.33:10203"
+  ],
+
+  "FrontMdAddrs": [
+    "tcp://180.168.146.187:10211",
+    "tcp://180.168.146.187:10212",
+    "tcp://218.202.237.33:10213"
+  ],
+
+  "UserInfo": {
+    "BrokerID": "9999",
+    "UserID": "",
+    "Password": "",
+    "InvestorID": "",
+    "UserProductInfo": "hft.js",
+    "AuthCode": "0000000000000000",
+    "AppID": "simnow_client_test"
+  }
+}
