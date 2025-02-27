@@ -44,6 +44,7 @@ if (!existsFile(config.FlowMdPath)) {
 }
 
 class Strategy implements hft.IStrategy, hft.ITickReceiver {
+  private prevTick?: hft.TickData;
   readonly symbol = "sc2504.SHFE";
 
   onInit(subscriber: hft.ITickSubscriber) {
@@ -67,7 +68,12 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver {
   onReject(order: hft.OrderData) {}
 
   onTick(tick: hft.TickData) {
+    const tape = hft.calcTapeData(tick, this.prevTick);
+
     console.log(tick);
+    console.log(tape);
+
+    this.prevTick = tick;
   }
 }
 
