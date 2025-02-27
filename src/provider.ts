@@ -12,7 +12,7 @@
 import ctp from "napi-ctp";
 import { ErrorType, ILifecycleListener } from "./interfaces.js";
 
-export type UserInfo = {
+export type CTPUserInfo = {
   BrokerID: string;
   UserID: string;
   Password: string;
@@ -25,12 +25,12 @@ export type UserInfo = {
 export class CTPProvider {
   protected readonly flowPath: string;
   protected readonly frontAddrs: string | string[];
-  protected readonly userInfo: UserInfo;
+  protected readonly userInfo: CTPUserInfo;
 
   constructor(
     flowPath: string,
     frontAddrs: string | string[],
-    userInfo: UserInfo,
+    userInfo: CTPUserInfo,
   ) {
     this.flowPath = flowPath;
     this.frontAddrs = frontAddrs;

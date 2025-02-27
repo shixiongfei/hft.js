@@ -10,7 +10,7 @@
  */
 
 import ctp from "napi-ctp";
-import { CTPProvider, UserInfo } from "./provider.js";
+import { CTPProvider, CTPUserInfo } from "./provider.js";
 import { OrderBook, TickData } from "./typedef.js";
 import {
   ILifecycleListener,
@@ -32,7 +32,7 @@ export class Market extends CTPProvider implements IMarketProvider {
   constructor(
     flowMdPath: string,
     frontMdAddrs: string | string[],
-    userInfo: UserInfo,
+    userInfo: CTPUserInfo,
   ) {
     super(flowMdPath, frontMdAddrs, userInfo);
     this.recordings = new Set();
@@ -335,5 +335,5 @@ export class Market extends CTPProvider implements IMarketProvider {
 export const createMarket = (
   flowMdPath: string,
   frontMdAddrs: string | string[],
-  userInfo: UserInfo,
+  userInfo: CTPUserInfo,
 ) => new Market(flowMdPath, frontMdAddrs, userInfo);

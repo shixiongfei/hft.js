@@ -11,7 +11,7 @@
 
 import Denque from "denque";
 import ctp from "napi-ctp";
-import { CTPProvider, UserInfo } from "./provider.js";
+import { CTPProvider, CTPUserInfo } from "./provider.js";
 import {
   CommissionRate,
   InstrumentData,
@@ -82,7 +82,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
   constructor(
     flowTdPath: string,
     frontTdAddrs: string | string[],
-    userInfo: UserInfo,
+    userInfo: CTPUserInfo,
   ) {
     super(flowTdPath, frontTdAddrs, userInfo);
     this.tradingDay = 0;
@@ -1503,5 +1503,5 @@ export class Trader extends CTPProvider implements ITraderProvider {
 export const createTrader = (
   flowTdPath: string,
   frontTdAddrs: string | string[],
-  userInfo: UserInfo,
+  userInfo: CTPUserInfo,
 ) => new Trader(flowTdPath, frontTdAddrs, userInfo);

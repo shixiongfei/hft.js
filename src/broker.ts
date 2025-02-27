@@ -9,13 +9,7 @@
  * https://github.com/shixiongfei/hft.js
  */
 
-import {
-  OffsetType,
-  OrderData,
-  OrderFlag,
-  SideType,
-  TradeData,
-} from "./typedef.js";
+import { OffsetType, OrderData, OrderFlag, SideType } from "./typedef.js";
 import {
   ICancelOrderResultReceiver,
   ErrorType,
