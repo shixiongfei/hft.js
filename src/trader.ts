@@ -812,6 +812,60 @@ export class Trader extends CTPProvider implements ITraderProvider {
       receiver.onPlaceOrderError("Only Supports Limit Order");
       return;
     }
+
+    const instrumentId = this._symbolToInstrumentId(symbol);
+
+    const instrument = this.instruments.find(
+      (instrument) => instrument.InstrumentID === instrumentId,
+    );
+
+    if (!instrument) {
+      receiver.onPlaceOrderError("Instrument Not Found");
+      return;
+    }
+
+    let orderRef = 0;
+
+    this._withRetry(() => {
+      orderRef = ++this.orderRef;
+
+      return this.traderApi?.reqOrderInsert({
+        ...this.userInfo,
+        OrderRef: `${orderRef}`,
+        InstrumentID: instrumentId,
+        ExchangeID: instrument.ExchangeID,
+        LimitPrice: price,
+        VolumeTotalOriginal: volume,
+        VolumeCondition: ctp.VolumeConditionType.AV,
+        TimeCondition: ctp.TimeConditionType.GFD,
+        Direction: this._toDirection(side),
+        OrderPriceType: ctp.OrderPriceTypeType.LimitPrice,
+        CombOffsetFlag: this._toOffsetFlag(offset),
+        CombHedgeFlag: ctp.HedgeFlagType.Speculation,
+        ContingentCondition: ctp.ContingentConditionType.Immediately,
+        ForceCloseReason: ctp.ForceCloseReasonType.NotForceClose,
+        IsAutoSuspend: 0,
+        UserForceClose: 0,
+      });
+    }).then((requestId) => {
+      if (!requestId) {
+        receiver.onPlaceOrderError("Request Failed");
+        return;
+      }
+
+      if (requestId < 0) {
+        receiver.onPlaceOrderError("Request Error");
+        return;
+      }
+
+      this.placeOrders.set(requestId, receiver);
+
+      const receiptId = `${this.frontId}:${this.sessionId}:${orderRef}`;
+
+      receiver.onPlaceOrderSent(receiptId);
+
+      return receiptId;
+    });
   }
 
   cancelOrder(order: OrderData, receiver: ICancelOrderResultReceiver) {
@@ -908,6 +962,16 @@ export class Trader extends CTPProvider implements ITraderProvider {
     }
   }
 
+  private _toDirection(side: SideType) {
+    switch (side) {
+      case "long":
+        return ctp.DirectionType.Buy;
+
+      case "short":
+        return ctp.DirectionType.Sell;
+    }
+  }
+
   private _calcOffsetType(offset: ctp.OffsetFlagType): OffsetType {
     switch (offset) {
       case ctp.OffsetFlagType.Open:
@@ -918,6 +982,19 @@ export class Trader extends CTPProvider implements ITraderProvider {
 
       default:
         return "close";
+    }
+  }
+
+  private _toOffsetFlag(offset: OffsetType) {
+    switch (offset) {
+      case "open":
+        return ctp.OffsetFlagType.Open;
+
+      case "close":
+        return ctp.OffsetFlagType.Close;
+
+      case "close-today":
+        return ctp.OffsetFlagType.CloseToday;
     }
   }
 
