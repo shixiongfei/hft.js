@@ -54,18 +54,13 @@ export class Broker implements IRuntimeEngine {
     this.marketLifecycle = {
       onOpen: () => {
         if (this.market.hasRecorder()) {
-          this.trader.queryInstruments(
-            {
-              onInstruments: (instruments) => {
-                if (instruments) {
-                  this.market.startRecorder(
-                    instruments.map((instrument) => instrument.symbol),
-                  );
-                }
-              },
+          this.trader.queryInstruments({
+            onInstruments: (instruments) => {
+              if (instruments) {
+                this.market.startRecorder(instruments);
+              }
             },
-            this.market.getRecorderType(),
-          );
+          });
         }
 
         this.strategies.forEach((strategy) => strategy.onInit(this));

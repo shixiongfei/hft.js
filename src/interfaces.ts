@@ -163,14 +163,20 @@ export interface IMarketRecorderReceiver {
   onMarketData: (marketData: any) => void;
 }
 
+export type IMarketRecorderSymbols = (instrument: InstrumentData[]) => string[];
+
 export interface IMarketProvider
   extends IProvider,
     ITickSubscriber,
     ITickUnsubscriber {
-  getRecorderType: () => ProductType | undefined;
   hasRecorder: () => boolean;
-  setRecorder: (receiver?: IMarketRecorderReceiver, type?: ProductType) => void;
-  startRecorder: (symbols: string[]) => void;
+
+  setRecorder: (
+    receiver: IMarketRecorderReceiver,
+    symbols: IMarketRecorderSymbols,
+  ) => void;
+
+  startRecorder: (instrument: InstrumentData[]) => void;
   stopRecorder: () => void;
 }
 

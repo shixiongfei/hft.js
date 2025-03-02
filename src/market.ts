@@ -11,11 +11,12 @@
 
 import ctp from "napi-ctp";
 import { CTPProvider, CTPUserInfo } from "./provider.js";
-import { OrderBook, ProductType, TickData } from "./typedef.js";
+import { InstrumentData, OrderBook, TickData } from "./typedef.js";
 import {
   ILifecycleListener,
   IMarketProvider,
   IMarketRecorderReceiver,
+  IMarketRecorderSymbols,
   ITickReceiver,
 } from "./interfaces.js";
 
@@ -25,7 +26,7 @@ const isValidVolume = (x: number) => x !== Number.MAX_VALUE && x !== 0;
 export class Market extends CTPProvider implements IMarketProvider {
   private marketApi?: ctp.MarketData;
   private recorder?: IMarketRecorderReceiver;
-  private recorderType?: ProductType;
+  private recorderSymbols?: IMarketRecorderSymbols;
   private readonly recordings: Set<string>;
   private readonly symbols: Map<string, string>;
   private readonly subscribers: Map<string, ITickReceiver[]>;
@@ -41,17 +42,16 @@ export class Market extends CTPProvider implements IMarketProvider {
     this.subscribers = new Map();
   }
 
-  getRecorderType() {
-    return this.recorderType;
-  }
-
   hasRecorder() {
     return !!this.recorder;
   }
 
-  setRecorder(receiver?: IMarketRecorderReceiver, type?: ProductType) {
+  setRecorder(
+    receiver: IMarketRecorderReceiver,
+    symbols: IMarketRecorderSymbols,
+  ) {
     this.recorder = receiver;
-    this.recorderType = type;
+    this.recorderSymbols = symbols;
   }
 
   open(lifecycle: ILifecycleListener) {
@@ -243,7 +243,12 @@ export class Market extends CTPProvider implements IMarketProvider {
     lifecycle.onClose();
   }
 
-  startRecorder(symbols: string[]) {
+  startRecorder(instrument: InstrumentData[]) {
+    if (!this.recorderSymbols) {
+      return;
+    }
+
+    const symbols = this.recorderSymbols(instrument);
     const instrumentIds = new Set<string>();
 
     symbols.forEach((symbol) => {

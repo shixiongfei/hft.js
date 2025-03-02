@@ -95,7 +95,10 @@ market.setRecorder(
       console.log(marketData.InstrumentID, marketData.LastPrice);
     },
   },
-  "future",
+  (instruments) =>
+    instruments
+      .filter((instrument) => instrument.productType === "future")
+      .map((instrument) => instrument.symbol),
 );
 
 const broker = hft.createBroker(trader, market, {
