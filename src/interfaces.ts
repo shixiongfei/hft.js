@@ -69,6 +69,7 @@ export interface ILifecycleListener extends IErrorReceiver {
 export interface IOrderReceiver {
   onEntrust: (order: OrderData) => void;
   onTrade: (order: OrderData, trade: TradeData) => void;
+  onFinish: (order: OrderData) => void;
   onCancel: (order: OrderData) => void;
   onReject: (order: OrderData) => void;
 }

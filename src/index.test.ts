@@ -44,12 +44,43 @@ if (!existsFile(config.FlowMdPath)) {
 }
 
 class Strategy implements hft.IStrategy, hft.ITickReceiver {
-  private prevTick?: hft.TickData;
+  private lastTick?: hft.TickData;
+  private engine: hft.IRuntimeEngine;
   readonly symbol = "sc2504.SHFE";
+
+  constructor(engine: hft.IRuntimeEngine) {
+    this.engine = engine;
+  }
 
   onInit(subscriber: hft.ITickSubscriber) {
     subscriber.subscribe([this.symbol], this);
     console.log("Strategy init");
+
+    setTimeout(() => {
+      if (!this.lastTick) {
+        console.error("Market data is not found");
+        return;
+      }
+
+      this.engine.placeOrder(
+        this,
+        this.symbol,
+        "open",
+        "long",
+        1,
+        this.lastTick.orderBook.asks.price[0],
+        "limit",
+        {
+          onPlaceOrderSent(receiptId) {
+            console.log("Open Place Order Receipt Id", receiptId);
+          },
+
+          onPlaceOrderError(reason) {
+            console.error("Open Place Order Error", reason);
+          },
+        },
+      );
+    }, 30 * 1000);
   }
 
   onDestroy(unsubscriber: hft.ITickUnsubscriber) {
@@ -57,23 +88,76 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver {
     console.log("Strategy destroy");
   }
 
-  onRisk(type: hft.RiskType, reason?: string) {}
+  onRisk(type: hft.RiskType, reason?: string) {
+    console.log("Trigger Risk Control", type, reason);
+  }
 
-  onEntrust(order: hft.OrderData) {}
+  onEntrust(order: hft.OrderData) {
+    console.log("Entrust order", order);
+  }
 
-  onTrade(order: hft.OrderData, trade: hft.TradeData) {}
+  onTrade(order: hft.OrderData, trade: hft.TradeData) {
+    console.log("Order", order, "Traded", trade);
+  }
 
-  onCancel(order: hft.OrderData) {}
+  onFinish(order: hft.OrderData) {
+    console.log("Finish Order", order);
 
-  onReject(order: hft.OrderData) {}
+    setTimeout(() => {
+      const symbol = this.symbol;
+      const engine = this.engine;
+      const strategy = this;
+      const lastTick = this.lastTick;
+
+      this.engine.queryPosition(this.symbol, {
+        onPosition(position) {
+          if (!position || !lastTick) {
+            return;
+          }
+
+          const todayLong =
+            position.long.today.position - position.long.today.frozen;
+
+          if (todayLong > 0) {
+            engine.placeOrder(
+              strategy,
+              symbol,
+              "close-today",
+              "short",
+              todayLong,
+              lastTick.orderBook.bids.price[0],
+              "limit",
+              {
+                onPlaceOrderSent(receiptId) {
+                  console.log("Close Place Order Receipt Id", receiptId);
+                },
+
+                onPlaceOrderError(reason) {
+                  console.error("Close Place Order Error", reason);
+                },
+              },
+            );
+          }
+        },
+      });
+    }, 30 * 1000);
+  }
+
+  onCancel(order: hft.OrderData) {
+    console.log("Cancel Order", order);
+  }
+
+  onReject(order: hft.OrderData) {
+    console.log("Reject Order", order);
+  }
 
   onTick(tick: hft.TickData) {
-    const tape = hft.calcTapeData(tick, this.prevTick);
+    const tape = hft.calcTapeData(tick, this.lastTick);
 
-    console.log(tick);
-    console.log(tape);
+    //console.log(tick);
+    //console.log(tape);
 
-    this.prevTick = tick;
+    this.lastTick = tick;
   }
 }
 
@@ -89,17 +173,21 @@ const market = hft.createMarket(
   config.UserInfo,
 );
 
-market.setRecorder(
-  {
-    onMarketData(marketData: ctp.DepthMarketDataField) {
-      console.log(marketData.InstrumentID, marketData.LastPrice);
+const enableRecorder = false;
+
+if (enableRecorder) {
+  market.setRecorder(
+    {
+      onMarketData(marketData: ctp.DepthMarketDataField) {
+        console.log(marketData.InstrumentID, marketData.LastPrice);
+      },
     },
-  },
-  (instruments) =>
-    instruments
-      .filter((instrument) => instrument.productType === "future")
-      .map((instrument) => instrument.symbol),
-);
+    (instruments) =>
+      instruments
+        .filter((instrument) => instrument.productType === "future")
+        .map((instrument) => instrument.symbol),
+  );
+}
 
 const broker = hft.createBroker(trader, market, {
   onError(error, message) {
@@ -107,7 +195,7 @@ const broker = hft.createBroker(trader, market, {
   },
 });
 
-broker.addStrategy(new Strategy());
+broker.addStrategy(new Strategy(broker));
 
 if (!broker.start()) {
   console.error("Broker start failed");

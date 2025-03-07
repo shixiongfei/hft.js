@@ -362,6 +362,13 @@ export class Trader extends CTPProvider implements ITraderProvider {
           }
           break;
 
+        case "filled":
+          {
+            const orderData = this._toOrderData(order);
+            this.receivers.forEach((receiver) => receiver.onFinish(orderData));
+          }
+          break;
+
         case "canceled":
           {
             const orderData = this._toOrderData(order);
