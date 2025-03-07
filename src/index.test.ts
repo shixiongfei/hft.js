@@ -46,7 +46,7 @@ if (!existsFile(config.FlowMdPath)) {
 class Strategy implements hft.IStrategy, hft.ITickReceiver {
   private lastTick?: hft.TickData;
   private engine: hft.IRuntimeEngine;
-  readonly symbol = "sc2504.SHFE";
+  readonly symbol = "sc2504.INE";
 
   constructor(engine: hft.IRuntimeEngine) {
     this.engine = engine;
