@@ -422,7 +422,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
             symbol,
             orderData.side,
             orderData.offset,
-            orderData.volume,
+            tradeData.volume,
           );
         }
 
