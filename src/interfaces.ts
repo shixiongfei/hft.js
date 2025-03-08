@@ -230,4 +230,38 @@ export interface IRuntimeEngine
     order: OrderData,
     receiver: ICancelOrderResultReceiver,
   ) => void;
+
+  buyOpen: (
+    strategy: IStrategy,
+    symbol: string,
+    volume: number,
+    price: number,
+    receiver: IPlaceOrderResultReceiver,
+  ) => void;
+
+  buyClose: (
+    strategy: IStrategy,
+    symbol: string,
+    volume: number,
+    price: number,
+    isToday: boolean,
+    receiver: IPlaceOrderResultReceiver,
+  ) => void;
+
+  sellOpen: (
+    strategy: IStrategy,
+    symbol: string,
+    volume: number,
+    price: number,
+    receiver: IPlaceOrderResultReceiver,
+  ) => void;
+
+  sellClose: (
+    strategy: IStrategy,
+    symbol: string,
+    volume: number,
+    price: number,
+    isToday: boolean,
+    receiver: IPlaceOrderResultReceiver,
+  ) => void;
 }

@@ -205,6 +205,84 @@ export class Broker implements IRuntimeEngine {
     return this.trader.cancelOrder(order, receiver);
   }
 
+  buyOpen(
+    strategy: IStrategy,
+    symbol: string,
+    volume: number,
+    price: number,
+    receiver: IPlaceOrderResultReceiver,
+  ) {
+    return this.placeOrder(
+      strategy,
+      symbol,
+      "open",
+      "long",
+      volume,
+      price,
+      "limit",
+      receiver,
+    );
+  }
+
+  buyClose(
+    strategy: IStrategy,
+    symbol: string,
+    volume: number,
+    price: number,
+    isToday: boolean,
+    receiver: IPlaceOrderResultReceiver,
+  ) {
+    return this.placeOrder(
+      strategy,
+      symbol,
+      isToday ? "close-today" : "close",
+      "long",
+      volume,
+      price,
+      "limit",
+      receiver,
+    );
+  }
+
+  sellOpen(
+    strategy: IStrategy,
+    symbol: string,
+    volume: number,
+    price: number,
+    receiver: IPlaceOrderResultReceiver,
+  ) {
+    return this.placeOrder(
+      strategy,
+      symbol,
+      "open",
+      "short",
+      volume,
+      price,
+      "limit",
+      receiver,
+    );
+  }
+
+  sellClose(
+    strategy: IStrategy,
+    symbol: string,
+    volume: number,
+    price: number,
+    isToday: boolean,
+    receiver: IPlaceOrderResultReceiver,
+  ) {
+    return this.placeOrder(
+      strategy,
+      symbol,
+      isToday ? "close-today" : "close",
+      "short",
+      volume,
+      price,
+      "limit",
+      receiver,
+    );
+  }
+
   getTradingDay() {
     return this.trader.getTradingDay();
   }

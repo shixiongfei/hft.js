@@ -111,14 +111,11 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver {
         return;
       }
 
-      this.engine.placeOrder(
+      this.engine.buyOpen(
         this,
         this.symbol,
-        "open",
-        "long",
         1,
         this.lastTick.orderBook.asks.price[0],
-        "limit",
         {
           onPlaceOrderSent: (receiptId) => {
             console.log("Open Place Order Receipt Id", receiptId);
@@ -160,14 +157,12 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver {
               position.today.long.position - position.today.long.frozen;
 
             if (todayLong > 0) {
-              this.engine.placeOrder(
+              this.engine.sellClose(
                 this,
                 this.symbol,
-                "close-today",
-                "short",
                 todayLong,
                 this.lastTick.orderBook.bids.price[0],
-                "limit",
+                true,
                 {
                   onPlaceOrderSent: (receiptId) => {
                     console.log("Close Place Order Receipt Id", receiptId);
