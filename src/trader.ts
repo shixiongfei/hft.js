@@ -429,10 +429,6 @@ export class Trader extends CTPProvider implements ITraderProvider {
         this.receivers.forEach((receiver) =>
           receiver.onTrade(orderData, tradeData),
         );
-
-        if (orderData.status === "filled") {
-          this.receivers.forEach((receiver) => receiver.onFinish(orderData));
-        }
       }
     });
 

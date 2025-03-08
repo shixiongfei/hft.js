@@ -147,44 +147,42 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver {
 
   onTrade(order: hft.OrderData, trade: hft.TradeData) {
     console.log("Order", order, "Traded", trade);
-  }
 
-  onFinish(order: hft.OrderData) {
-    console.log("Finish Order", order);
+    if (order.status === "filled") {
+      setTimeout(() => {
+        this.engine.queryPosition(this.symbol, {
+          onPosition: (position) => {
+            if (!position || !this.lastTick) {
+              return;
+            }
 
-    setTimeout(() => {
-      this.engine.queryPosition(this.symbol, {
-        onPosition: (position) => {
-          if (!position || !this.lastTick) {
-            return;
-          }
+            const todayLong =
+              position.today.long.position - position.today.long.frozen;
 
-          const todayLong =
-            position.today.long.position - position.today.long.frozen;
+            if (todayLong > 0) {
+              this.engine.placeOrder(
+                this,
+                this.symbol,
+                "close-today",
+                "short",
+                todayLong,
+                this.lastTick.orderBook.bids.price[0],
+                "limit",
+                {
+                  onPlaceOrderSent: (receiptId) => {
+                    console.log("Close Place Order Receipt Id", receiptId);
+                  },
 
-          if (todayLong > 0) {
-            this.engine.placeOrder(
-              this,
-              this.symbol,
-              "close-today",
-              "short",
-              todayLong,
-              this.lastTick.orderBook.bids.price[0],
-              "limit",
-              {
-                onPlaceOrderSent: (receiptId) => {
-                  console.log("Close Place Order Receipt Id", receiptId);
+                  onPlaceOrderError: (reason) => {
+                    console.error("Close Place Order Error", reason);
+                  },
                 },
-
-                onPlaceOrderError: (reason) => {
-                  console.error("Close Place Order Error", reason);
-                },
-              },
-            );
-          }
-        },
-      });
-    }, 30 * 1000);
+              );
+            }
+          },
+        });
+      }, 30 * 1000);
+    }
   }
 
   onCancel(order: hft.OrderData) {
