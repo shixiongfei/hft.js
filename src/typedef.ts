@@ -89,7 +89,7 @@ export type PositionData = Readonly<{
   symbol: string;
   today: PositionSide;
   history: PositionSide;
-  pending: { long: number; short: number };
+  pending: Readonly<{ long: number; short: number }>;
 }>;
 
 export type SideType = "long" | "short";
