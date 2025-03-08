@@ -9,8 +9,10 @@
  * https://github.com/shixiongfei/hft.js
  */
 
-import { TickData } from "./typedef.js";
+import { BarData, TickData, Writeable } from "./typedef.js";
 import { IBarReceiver, ITickReceiver } from "./interfaces.js";
+
+export type BarInfo = Writeable<BarData>;
 
 export class BarGenerator implements ITickReceiver {
   private readonly receivers: IBarReceiver[] = [];
