@@ -81,15 +81,15 @@ export type PositionCell = Readonly<{
 }>;
 
 export type PositionSide = Readonly<{
-  today: PositionCell;
-  history: PositionCell;
-  pending: number;
+  long: PositionCell;
+  short: PositionCell;
 }>;
 
 export type PositionData = Readonly<{
   symbol: string;
-  long: PositionSide;
-  short: PositionSide;
+  today: PositionSide;
+  history: PositionSide;
+  pending: { long: number; short: number };
 }>;
 
 export type SideType = "long" | "short";

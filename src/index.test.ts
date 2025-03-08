@@ -56,6 +56,42 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver {
     subscriber.subscribe([this.symbol], this);
     console.log("Strategy init");
 
+    this.engine.queryCommissionRate(this.symbol, {
+      onCommissionRate(rate) {
+        console.log("Commission Rate", rate);
+      },
+    });
+
+    this.engine.queryMarginRate(this.symbol, {
+      onMarginRate(rate) {
+        console.log("Margin Rate", rate);
+      },
+    });
+
+    this.engine.queryTradingAccounts({
+      onTradingAccounts(accounts) {
+        console.log("Trading Accounts", accounts);
+      },
+    });
+
+    this.engine.queryOrders({
+      onOrders(orders) {
+        console.log("Orders", orders);
+      },
+    });
+
+    this.engine.queryPositionDetails({
+      onPositionDetails(positionDetails) {
+        console.log("Position Details", positionDetails);
+      },
+    });
+
+    this.engine.queryPositions({
+      onPositions(positions) {
+        console.log("Positions", positions);
+      },
+    });
+
     setTimeout(() => {
       if (!this.lastTick) {
         console.error("Market data is not found");
@@ -116,7 +152,7 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver {
           }
 
           const todayLong =
-            position.long.today.position - position.long.today.frozen;
+            position.today.long.position - position.today.long.frozen;
 
           if (todayLong > 0) {
             engine.placeOrder(

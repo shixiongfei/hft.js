@@ -269,12 +269,12 @@ export class Trader extends CTPProvider implements ITraderProvider {
               case ctp.PosiDirectionType.Long:
                 if (position.PositionDate === ctp.PositionDateType.Today) {
                   if (ExchangeSH.includes(position.ExchangeID)) {
-                    posInfo.long.today.position += position.TodayPosition;
+                    posInfo.today.long.position += position.TodayPosition;
                   } else {
-                    posInfo.long.today.position += position.Position;
+                    posInfo.today.long.position += position.Position;
                   }
                 } else {
-                  posInfo.long.history.position +=
+                  posInfo.history.long.position +=
                     position.Position - position.TodayPosition;
                 }
                 break;
@@ -282,12 +282,12 @@ export class Trader extends CTPProvider implements ITraderProvider {
               case ctp.PosiDirectionType.Short:
                 if (position.PositionDate === ctp.PositionDateType.Today) {
                   if (ExchangeSH.includes(position.ExchangeID)) {
-                    posInfo.short.today.position += position.TodayPosition;
+                    posInfo.today.short.position += position.TodayPosition;
                   } else {
-                    posInfo.short.today.position += position.Position;
+                    posInfo.today.short.position += position.Position;
                   }
                 } else {
-                  posInfo.short.history.position +=
+                  posInfo.history.short.position +=
                     position.Position - position.TodayPosition;
                 }
                 break;
@@ -702,16 +702,15 @@ export class Trader extends CTPProvider implements ITraderProvider {
     receiver.onPosition(
       Object.freeze({
         symbol: symbol,
-        long: Object.freeze({
-          today: Object.freeze({ position: 0, frozen: 0 }),
-          history: Object.freeze({ position: 0, frozen: 0 }),
-          pending: 0,
+        today: Object.freeze({
+          long: Object.freeze({ position: 0, frozen: 0 }),
+          short: Object.freeze({ position: 0, frozen: 0 }),
         }),
-        short: Object.freeze({
-          today: Object.freeze({ position: 0, frozen: 0 }),
-          history: Object.freeze({ position: 0, frozen: 0 }),
-          pending: 0,
+        history: Object.freeze({
+          long: Object.freeze({ position: 0, frozen: 0 }),
+          short: Object.freeze({ position: 0, frozen: 0 }),
         }),
+        pending: Object.freeze({ long: 0, short: 0 }),
       }),
     );
   }
@@ -1028,16 +1027,15 @@ export class Trader extends CTPProvider implements ITraderProvider {
     if (!position) {
       position = {
         symbol: symbol,
-        long: {
-          today: { position: 0, frozen: 0 },
-          history: { position: 0, frozen: 0 },
-          pending: 0,
+        today: {
+          long: { position: 0, frozen: 0 },
+          short: { position: 0, frozen: 0 },
         },
-        short: {
-          today: { position: 0, frozen: 0 },
-          history: { position: 0, frozen: 0 },
-          pending: 0,
+        history: {
+          long: { position: 0, frozen: 0 },
+          short: { position: 0, frozen: 0 },
         },
+        pending: { long: 0, short: 0 },
       };
 
       this.positions.set(symbol, position);
@@ -1058,22 +1056,22 @@ export class Trader extends CTPProvider implements ITraderProvider {
       case "open":
         switch (side) {
           case "long":
-            position.long.today.position += volume;
+            position.today.long.position += volume;
 
-            if (position.long.pending > volume) {
-              position.long.pending -= volume;
+            if (position.pending.long > volume) {
+              position.pending.long -= volume;
             } else {
-              position.long.pending = 0;
+              position.pending.long = 0;
             }
             break;
 
           case "short":
-            position.short.today.position += volume;
+            position.today.short.position += volume;
 
-            if (position.short.pending > volume) {
-              position.short.pending -= volume;
+            if (position.pending.short > volume) {
+              position.pending.short -= volume;
             } else {
-              position.short.pending = 0;
+              position.pending.short = 0;
             }
             break;
         }
@@ -1082,65 +1080,65 @@ export class Trader extends CTPProvider implements ITraderProvider {
       case "close":
         switch (side) {
           case "long":
-            if (position.long.history.position > volume) {
-              position.long.history.position -= volume;
+            if (position.history.long.position > volume) {
+              position.history.long.position -= volume;
             } else {
-              const rest = volume - position.long.history.position;
-              position.long.history.position -= position.long.history.position;
+              const rest = volume - position.history.long.position;
+              position.history.long.position -= position.history.long.position;
 
               if (rest > 0) {
-                if (position.long.today.position > rest) {
-                  position.long.today.position -= rest;
+                if (position.today.long.position > rest) {
+                  position.today.long.position -= rest;
                 } else {
-                  position.long.today.position = 0;
+                  position.today.long.position = 0;
                 }
               }
             }
 
-            if (position.long.history.frozen > volume) {
-              position.long.history.frozen -= volume;
+            if (position.history.long.frozen > volume) {
+              position.history.long.frozen -= volume;
             } else {
-              const rest = volume - position.long.history.frozen;
-              position.long.history.frozen -= position.long.history.frozen;
+              const rest = volume - position.history.long.frozen;
+              position.history.long.frozen -= position.history.long.frozen;
 
               if (rest > 0) {
-                if (position.long.today.frozen > rest) {
-                  position.long.today.frozen -= rest;
+                if (position.today.long.frozen > rest) {
+                  position.today.long.frozen -= rest;
                 } else {
-                  position.long.today.frozen = 0;
+                  position.today.long.frozen = 0;
                 }
               }
             }
             break;
 
           case "short":
-            if (position.short.history.position > volume) {
-              position.short.history.position -= volume;
+            if (position.history.short.position > volume) {
+              position.history.short.position -= volume;
             } else {
-              const rest = volume - position.short.history.position;
-              position.short.history.position -=
-                position.short.history.position;
+              const rest = volume - position.history.short.position;
+              position.history.short.position -=
+                position.history.short.position;
 
               if (rest > 0) {
-                if (position.short.today.position > rest) {
-                  position.short.today.position -= rest;
+                if (position.today.short.position > rest) {
+                  position.today.short.position -= rest;
                 } else {
-                  position.short.today.position = 0;
+                  position.today.short.position = 0;
                 }
               }
             }
 
-            if (position.short.history.frozen > volume) {
-              position.short.history.frozen -= volume;
+            if (position.history.short.frozen > volume) {
+              position.history.short.frozen -= volume;
             } else {
-              const rest = volume - position.short.history.frozen;
-              position.short.history.frozen -= position.short.history.frozen;
+              const rest = volume - position.history.short.frozen;
+              position.history.short.frozen -= position.history.short.frozen;
 
               if (rest > 0) {
-                if (position.short.today.frozen > rest) {
-                  position.short.today.frozen -= rest;
+                if (position.today.short.frozen > rest) {
+                  position.today.short.frozen -= rest;
                 } else {
-                  position.short.today.frozen = 0;
+                  position.today.short.frozen = 0;
                 }
               }
             }
@@ -1151,30 +1149,30 @@ export class Trader extends CTPProvider implements ITraderProvider {
       case "close-today":
         switch (side) {
           case "long":
-            if (position.long.today.position > volume) {
-              position.long.today.position -= volume;
+            if (position.today.long.position > volume) {
+              position.today.long.position -= volume;
             } else {
-              position.long.today.position = 0;
+              position.today.long.position = 0;
             }
 
-            if (position.long.today.frozen > volume) {
-              position.long.today.frozen -= volume;
+            if (position.today.long.frozen > volume) {
+              position.today.long.frozen -= volume;
             } else {
-              position.long.today.frozen = 0;
+              position.today.long.frozen = 0;
             }
             break;
 
           case "short":
-            if (position.short.today.position > volume) {
-              position.short.today.position -= volume;
+            if (position.today.short.position > volume) {
+              position.today.short.position -= volume;
             } else {
-              position.short.today.position = 0;
+              position.today.short.position = 0;
             }
 
-            if (position.short.today.frozen > volume) {
-              position.short.today.frozen -= volume;
+            if (position.today.short.frozen > volume) {
+              position.today.short.frozen -= volume;
             } else {
-              position.short.today.frozen = 0;
+              position.today.short.frozen = 0;
             }
             break;
         }
@@ -1196,11 +1194,11 @@ export class Trader extends CTPProvider implements ITraderProvider {
 
     switch (side) {
       case "long":
-        position.long.pending += volume;
+        position.pending.long += volume;
         break;
 
       case "short":
-        position.short.pending += volume;
+        position.pending.short += volume;
         break;
     }
   }
@@ -1223,11 +1221,11 @@ export class Trader extends CTPProvider implements ITraderProvider {
 
     switch (side) {
       case "long":
-        position.long.pending -= volume;
+        position.pending.long -= volume;
         break;
 
       case "short":
-        position.short.pending -= volume;
+        position.pending.short -= volume;
         break;
     }
   }
@@ -1248,11 +1246,11 @@ export class Trader extends CTPProvider implements ITraderProvider {
       case "close":
         switch (side) {
           case "long":
-            position.long.history.frozen += volume;
+            position.history.long.frozen += volume;
             break;
 
           case "short":
-            position.short.history.frozen += volume;
+            position.history.short.frozen += volume;
             break;
         }
         break;
@@ -1260,11 +1258,11 @@ export class Trader extends CTPProvider implements ITraderProvider {
       case "close-today":
         switch (side) {
           case "long":
-            position.long.today.frozen += volume;
+            position.today.long.frozen += volume;
             break;
 
           case "short":
-            position.short.today.frozen += volume;
+            position.today.short.frozen += volume;
             break;
         }
         break;
@@ -1287,19 +1285,19 @@ export class Trader extends CTPProvider implements ITraderProvider {
       case "close":
         switch (side) {
           case "long":
-            if (position.long.history.frozen > volume) {
-              position.long.history.frozen -= volume;
+            if (position.history.long.frozen > volume) {
+              position.history.long.frozen -= volume;
             } else {
-              position.long.history.frozen = 0;
+              position.history.long.frozen = 0;
             }
 
             break;
 
           case "short":
-            if (position.short.history.frozen > volume) {
-              position.short.history.frozen -= volume;
+            if (position.history.short.frozen > volume) {
+              position.history.short.frozen -= volume;
             } else {
-              position.short.history.frozen = 0;
+              position.history.short.frozen = 0;
             }
             break;
         }
@@ -1308,18 +1306,18 @@ export class Trader extends CTPProvider implements ITraderProvider {
       case "close-today":
         switch (side) {
           case "long":
-            if (position.long.today.frozen > volume) {
-              position.long.today.frozen -= volume;
+            if (position.today.long.frozen > volume) {
+              position.today.long.frozen -= volume;
             } else {
-              position.long.today.frozen = 0;
+              position.today.long.frozen = 0;
             }
             break;
 
           case "short":
-            if (position.short.today.frozen > volume) {
-              position.short.today.frozen -= volume;
+            if (position.today.short.frozen > volume) {
+              position.today.short.frozen -= volume;
             } else {
-              position.short.today.frozen = 0;
+              position.today.short.frozen = 0;
             }
             break;
         }
@@ -1448,16 +1446,16 @@ export class Trader extends CTPProvider implements ITraderProvider {
   private _toPositionData(position: PositionInfo): PositionData {
     return Object.freeze({
       symbol: position.symbol,
-      long: Object.freeze({
-        today: Object.freeze({ ...position.long.today }),
-        history: Object.freeze({ ...position.long.history }),
-        pending: position.long.pending,
+
+      today: Object.freeze({
+        long: Object.freeze({ ...position.today.long }),
+        short: Object.freeze({ ...position.today.short }),
       }),
-      short: Object.freeze({
-        today: Object.freeze({ ...position.short.today }),
-        history: Object.freeze({ ...position.short.history }),
-        pending: position.short.pending,
+      history: Object.freeze({
+        long: Object.freeze({ ...position.history.long }),
+        short: Object.freeze({ ...position.history.short }),
       }),
+      pending: Object.freeze({ ...position.pending }),
     });
   }
 
