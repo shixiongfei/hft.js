@@ -362,13 +362,6 @@ export class Trader extends CTPProvider implements ITraderProvider {
           }
           break;
 
-        case "filled":
-          {
-            const orderData = this._toOrderData(order);
-            this.receivers.forEach((receiver) => receiver.onFinish(orderData));
-          }
-          break;
-
         case "canceled":
           {
             const orderData = this._toOrderData(order);
@@ -436,6 +429,10 @@ export class Trader extends CTPProvider implements ITraderProvider {
         this.receivers.forEach((receiver) =>
           receiver.onTrade(orderData, tradeData),
         );
+
+        if (orderData.status === "filled") {
+          this.receivers.forEach((receiver) => receiver.onFinish(orderData));
+        }
       }
     });
 
@@ -928,7 +925,10 @@ export class Trader extends CTPProvider implements ITraderProvider {
     return `${order.FrontID}:${order.SessionID}:${parseInt(order.OrderRef)}`;
   }
 
-  private _calcOrderStatus(order: ctp.OrderField): OrderStatus {
+  private _calcOrderStatus(
+    order: ctp.OrderField,
+    traded?: number,
+  ): OrderStatus {
     switch (order.OrderStatus) {
       case ctp.OrderStatusType.Unknown:
         return "submitted";
@@ -948,7 +948,9 @@ export class Trader extends CTPProvider implements ITraderProvider {
         }
 
       default:
-        return "partially-filled";
+        return traded && order.VolumeTotalOriginal === traded
+          ? "filled"
+          : "partially-filled";
     }
   }
 
@@ -1339,6 +1341,10 @@ export class Trader extends CTPProvider implements ITraderProvider {
     const orderId = this._calcOrderId(order);
     const trades = this.trades.get(orderId) ?? [];
 
+    const traded = trades
+      .map((trade) => trade.Volume)
+      .reduce((a, b) => a + b, 0);
+
     return Object.freeze({
       id: orderId,
       receiptId: this._calcReceiptId(order),
@@ -1350,8 +1356,8 @@ export class Trader extends CTPProvider implements ITraderProvider {
       offset: this._calcOffsetType(order.CombOffsetFlag as ctp.OffsetFlagType),
       price: order.LimitPrice,
       volume: order.VolumeTotalOriginal,
-      traded: order.VolumeTotalOriginal - order.VolumeTotal,
-      status: this._calcOrderStatus(order),
+      traded: traded,
+      status: this._calcOrderStatus(order, traded),
       trades: trades.map(this._toTradeData, this),
       cancelTime:
         order.CancelTime !== "" ? this._parseTime(order.CancelTime) : undefined,

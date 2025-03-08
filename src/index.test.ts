@@ -56,38 +56,40 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver {
     subscriber.subscribe([this.symbol], this);
     console.log("Strategy init");
 
+    console.log("Trading Day", this.engine.getTradingDay());
+
     this.engine.queryCommissionRate(this.symbol, {
-      onCommissionRate(rate) {
+      onCommissionRate: (rate) => {
         console.log("Commission Rate", rate);
       },
     });
 
     this.engine.queryMarginRate(this.symbol, {
-      onMarginRate(rate) {
+      onMarginRate: (rate) => {
         console.log("Margin Rate", rate);
       },
     });
 
     this.engine.queryTradingAccounts({
-      onTradingAccounts(accounts) {
+      onTradingAccounts: (accounts) => {
         console.log("Trading Accounts", accounts);
       },
     });
 
     this.engine.queryOrders({
-      onOrders(orders) {
+      onOrders: (orders) => {
         console.log("Orders", orders);
       },
     });
 
     this.engine.queryPositionDetails({
-      onPositionDetails(positionDetails) {
+      onPositionDetails: (positionDetails) => {
         console.log("Position Details", positionDetails);
       },
     });
 
     this.engine.queryPositions({
-      onPositions(positions) {
+      onPositions: (positions) => {
         console.log("Positions", positions);
       },
     });
@@ -107,11 +109,11 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver {
         this.lastTick.orderBook.asks.price[0],
         "limit",
         {
-          onPlaceOrderSent(receiptId) {
+          onPlaceOrderSent: (receiptId) => {
             console.log("Open Place Order Receipt Id", receiptId);
           },
 
-          onPlaceOrderError(reason) {
+          onPlaceOrderError: (reason) => {
             console.error("Open Place Order Error", reason);
           },
         },
@@ -140,14 +142,9 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver {
     console.log("Finish Order", order);
 
     setTimeout(() => {
-      const symbol = this.symbol;
-      const engine = this.engine;
-      const strategy = this;
-      const lastTick = this.lastTick;
-
       this.engine.queryPosition(this.symbol, {
-        onPosition(position) {
-          if (!position || !lastTick) {
+        onPosition: (position) => {
+          if (!position || !this.lastTick) {
             return;
           }
 
@@ -155,20 +152,20 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver {
             position.today.long.position - position.today.long.frozen;
 
           if (todayLong > 0) {
-            engine.placeOrder(
-              strategy,
-              symbol,
+            this.engine.placeOrder(
+              this,
+              this.symbol,
               "close-today",
               "short",
               todayLong,
-              lastTick.orderBook.bids.price[0],
+              this.lastTick.orderBook.bids.price[0],
               "limit",
               {
-                onPlaceOrderSent(receiptId) {
+                onPlaceOrderSent: (receiptId) => {
                   console.log("Close Place Order Receipt Id", receiptId);
                 },
 
-                onPlaceOrderError(reason) {
+                onPlaceOrderError: (reason) => {
                   console.error("Close Place Order Error", reason);
                 },
               },
@@ -188,7 +185,7 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver {
   }
 
   onTick(tick: hft.TickData) {
-    const tape = hft.calcTapeData(tick, this.lastTick);
+    //const tape = hft.calcTapeData(tick, this.lastTick);
 
     //console.log(tick);
     //console.log(tape);
@@ -214,7 +211,7 @@ const enableRecorder = false;
 if (enableRecorder) {
   market.setRecorder(
     {
-      onMarketData(marketData: ctp.DepthMarketDataField) {
+      onMarketData: (marketData: ctp.DepthMarketDataField) => {
         console.log(marketData.InstrumentID, marketData.LastPrice);
       },
     },
