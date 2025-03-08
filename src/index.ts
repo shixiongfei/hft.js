@@ -15,4 +15,5 @@ export * from "./broker.js";
 export * from "./tape.js";
 export * from "./trader.js";
 export * from "./market.js";
+export * from "./utils.js";
 export { CTPUserInfo } from "./provider.js";

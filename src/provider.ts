@@ -59,11 +59,6 @@ export class CTPProvider {
     }
   }
 
-  protected _parseSymbol(symbol: string): [string, string] {
-    const [instrumentId, exchangeId] = symbol.split(".");
-    return [instrumentId, exchangeId];
-  }
-
   protected _isErrorResp(
     lifecycle: ILifecycleListener,
     options: ctp.CallbackOptions,

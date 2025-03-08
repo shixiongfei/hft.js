@@ -198,4 +198,25 @@ export type InstrumentData = Readonly<{
   minLimitOrderVolume: number;
 }>;
 
+export type PriceVolume = Readonly<{
+  [price: number]: number;
+}>;
+
+export type BarData = Readonly<{
+  symbol: string;
+  date: number;
+  time: number;
+  openInterest: number;
+  openPrice: number;
+  highPrice: number;
+  lowPrice: number;
+  closePrice: number;
+  volume: number;
+  amount: number;
+  delta: number;
+  poc: number;
+  buyVolumes: PriceVolume;
+  sellVolumes: PriceVolume;
+}>;
+
 export type Writeable<T> = { -readonly [P in keyof T]: Writeable<T[P]> };

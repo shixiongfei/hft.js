@@ -12,6 +12,7 @@
 import ctp from "napi-ctp";
 import { CTPProvider, CTPUserInfo } from "./provider.js";
 import { InstrumentData, OrderBook, TickData } from "./typedef.js";
+import { parseSymbol } from "./utils.js";
 import {
   ILifecycleListener,
   IMarketProvider,
@@ -252,7 +253,7 @@ export class Market extends CTPProvider implements IMarketProvider {
     const instrumentIds = new Set<string>();
 
     symbols.forEach((symbol) => {
-      const [instrumentId] = this._parseSymbol(symbol);
+      const [instrumentId] = parseSymbol(symbol);
 
       if (this.recordings.has(instrumentId)) {
         return;
@@ -300,7 +301,7 @@ export class Market extends CTPProvider implements IMarketProvider {
     const instrumentIds = new Set<string>();
 
     symbols.forEach((symbol) => {
-      const [instrumentId] = this._parseSymbol(symbol);
+      const [instrumentId] = parseSymbol(symbol);
       const receivers = this.subscribers.get(instrumentId);
 
       if (receivers) {
@@ -328,7 +329,7 @@ export class Market extends CTPProvider implements IMarketProvider {
     const instrumentIds = new Set<string>();
 
     symbols.forEach((symbol) => {
-      const [instrumentId] = this._parseSymbol(symbol);
+      const [instrumentId] = parseSymbol(symbol);
       const receivers = this.subscribers.get(instrumentId);
 
       if (!receivers) {

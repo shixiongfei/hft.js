@@ -10,6 +10,7 @@
  */
 
 import {
+  BarData,
   CommissionRate,
   InstrumentData,
   MarginRate,
@@ -87,6 +88,18 @@ export interface ITickSubscriber {
 
 export interface ITickUnsubscriber {
   unsubscribe: (symbols: string[], receiver: ITickReceiver) => void;
+}
+
+export interface IBarReceiver {
+  onBar: (bar: BarData) => void;
+}
+
+export interface IBarSubscriber {
+  subscribeBar: (symbols: string[], receiver: IBarReceiver) => void;
+}
+
+export interface IBarUnsubscriber {
+  unsubscribeBar: (symbols: string[], receiver: IBarReceiver) => void;
 }
 
 export interface IStrategy extends IRiskManagerReceiver, IOrderReceiver {
@@ -207,7 +220,9 @@ export interface ITraderProvider extends IProvider, IOrderEmitter, IQueryApi {
 export interface IRuntimeEngine
   extends IQueryApi,
     ITickSubscriber,
-    ITickUnsubscriber {
+    ITickUnsubscriber,
+    IBarSubscriber,
+    IBarUnsubscriber {
   addStrategy: (strategy: IStrategy) => void;
   removeStrategy: (strategy: IStrategy) => void;
 

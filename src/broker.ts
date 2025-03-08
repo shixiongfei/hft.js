@@ -10,6 +10,7 @@
  */
 
 import { OffsetType, OrderData, OrderFlag, SideType } from "./typedef.js";
+import { BarGenerator, createBarGenerator } from "bar.js";
 import {
   ICancelOrderResultReceiver,
   ErrorType,
@@ -32,6 +33,7 @@ import {
   IPlaceOrderResultReceiver,
   IPositionReceiver,
   IPositionDetailsReceiver,
+  IBarReceiver,
 } from "./interfaces.js";
 
 export class Broker implements IRuntimeEngine {
@@ -42,6 +44,7 @@ export class Broker implements IRuntimeEngine {
   private readonly strategies: IStrategy[] = [];
   private readonly placeOrderRiskManagers: IPlaceOrderRiskManager[] = [];
   private readonly cancelOrderRiskManagers: ICancelOrderRiskManager[] = [];
+  private readonly generators: Map<string, BarGenerator>;
 
   constructor(
     trader: ITraderProvider,
@@ -50,6 +53,7 @@ export class Broker implements IRuntimeEngine {
   ) {
     this.trader = trader;
     this.market = market;
+    this.generators = new Map();
 
     this.marketLifecycle = {
       onOpen: () => {
@@ -135,6 +139,38 @@ export class Broker implements IRuntimeEngine {
 
   unsubscribe(symbols: string[], receiver: ITickReceiver) {
     return this.market.unsubscribe(symbols, receiver);
+  }
+
+  subscribeBar(symbols: string[], receiver: IBarReceiver) {
+    symbols.forEach((symbol) => {
+      let generator = this.generators.get(symbol);
+
+      if (!generator) {
+        generator = createBarGenerator();
+
+        this.generators.set(symbol, generator);
+        this.subscribe([symbol], generator);
+      }
+
+      generator.addReceiver(receiver);
+    });
+  }
+
+  unsubscribeBar(symbols: string[], receiver: IBarReceiver) {
+    symbols.forEach((symbol) => {
+      const generator = this.generators.get(symbol);
+
+      if (!generator) {
+        return;
+      }
+
+      generator.removeReceiver(receiver);
+
+      if (!generator.isWorking) {
+        this.unsubscribe([symbol], generator);
+        this.generators.delete(symbol);
+      }
+    });
   }
 
   placeOrder(
