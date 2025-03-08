@@ -10,7 +10,7 @@
  */
 
 import { OffsetType, OrderData, OrderFlag, SideType } from "./typedef.js";
-import { BarGenerator, createBarGenerator } from "bar.js";
+import { BarGenerator, createBarGenerator } from "./bar.js";
 import {
   ICancelOrderResultReceiver,
   ErrorType,
