@@ -252,7 +252,7 @@ export class Market extends CTPProvider implements IMarketProvider {
     const instrumentIds = new Set<string>();
 
     symbols.forEach((symbol) => {
-      const instrumentId = this._symbolToInstrumentId(symbol);
+      const [instrumentId] = this._parseSymbol(symbol);
 
       if (this.recordings.has(instrumentId)) {
         return;
@@ -300,7 +300,7 @@ export class Market extends CTPProvider implements IMarketProvider {
     const instrumentIds = new Set<string>();
 
     symbols.forEach((symbol) => {
-      const instrumentId = this._symbolToInstrumentId(symbol);
+      const [instrumentId] = this._parseSymbol(symbol);
       const receivers = this.subscribers.get(instrumentId);
 
       if (receivers) {
@@ -328,7 +328,7 @@ export class Market extends CTPProvider implements IMarketProvider {
     const instrumentIds = new Set<string>();
 
     symbols.forEach((symbol) => {
-      const instrumentId = this._symbolToInstrumentId(symbol);
+      const [instrumentId] = this._parseSymbol(symbol);
       const receivers = this.subscribers.get(instrumentId);
 
       if (!receivers) {

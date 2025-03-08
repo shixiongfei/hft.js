@@ -627,7 +627,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
   }
 
   queryCommissionRate(symbol: string, receiver: ICommissionRateReceiver) {
-    const instrumentId = this._symbolToInstrumentId(symbol);
+    const [instrumentId] = this._parseSymbol(symbol);
     const commRate = this.commRates.get(instrumentId);
 
     if (commRate) {
@@ -648,7 +648,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
   }
 
   queryMarginRate(symbol: string, receiver: IMarginRateReceiver) {
-    const instrumentId = this._symbolToInstrumentId(symbol);
+    const [instrumentId] = this._parseSymbol(symbol);
     const marginRate = this.marginRates.get(instrumentId);
 
     if (marginRate) {
@@ -670,10 +670,12 @@ export class Trader extends CTPProvider implements ITraderProvider {
   }
 
   queryInstrument(symbol: string, receiver: IInstrumentReceiver) {
-    const instrumentId = this._symbolToInstrumentId(symbol);
+    const [instrumentId, exchangeId] = this._parseSymbol(symbol);
 
     const instrument = this.instruments.find(
-      (instrument) => instrument.InstrumentID === instrumentId,
+      (instrument) =>
+        instrument.InstrumentID === instrumentId &&
+        instrument.ExchangeID === exchangeId,
     );
 
     receiver.onInstrument(
@@ -689,7 +691,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
       return;
     }
 
-    const instrumentId = this._symbolToInstrumentId(symbol);
+    const [instrumentId] = this._parseSymbol(symbol);
 
     if (!this.symbols.has(instrumentId)) {
       receiver.onPosition(undefined);
@@ -820,7 +822,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
       return;
     }
 
-    const instrumentId = this._symbolToInstrumentId(symbol);
+    const [instrumentId] = this._parseSymbol(symbol);
 
     const instrument = this.instruments.find(
       (instrument) => instrument.InstrumentID === instrumentId,
@@ -1469,7 +1471,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     while (!this.marginRatesQueue.isEmpty()) {
       const nextQuery = this.marginRatesQueue.peekFront()!;
 
-      const instrumentId = this._symbolToInstrumentId(nextQuery.symbol);
+      const [instrumentId] = this._parseSymbol(nextQuery.symbol);
       const marginRate = this.marginRates.get(instrumentId);
 
       if (marginRate) {
@@ -1494,7 +1496,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     while (!this.commRatesQueue.isEmpty()) {
       const nextQuery = this.commRatesQueue.peekFront()!;
 
-      const instrumentId = this._symbolToInstrumentId(nextQuery.symbol);
+      const [instrumentId] = this._parseSymbol(nextQuery.symbol);
       const commRate = this.commRates.get(instrumentId);
 
       if (commRate) {

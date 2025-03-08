@@ -58,6 +58,17 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver {
 
     console.log("Trading Day", this.engine.getTradingDay());
 
+    this.engine.queryInstrument(this.symbol, {
+      onInstrument: (instrument) => {
+        if (!instrument) {
+          console.error("Symbol", this.symbol, "error");
+          exit(1);
+        }
+
+        console.log("Instrument", instrument);
+      },
+    });
+
     this.engine.queryCommissionRate(this.symbol, {
       onCommissionRate: (rate) => {
         console.log("Commission Rate", rate);
