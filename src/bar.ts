@@ -11,6 +11,7 @@
 
 import { BarData, TapeData, TickData, Writeable } from "./typedef.js";
 import { IBarReceiver, ITickReceiver } from "./interfaces.js";
+import { getBarVolume } from "./utils.js";
 
 export type BarInfo = Writeable<BarData>;
 
@@ -76,6 +77,37 @@ export class BarGenerator implements ITickReceiver {
 
     this.bar.volume += tape.volumeDelta;
     this.bar.amount += tape.amountDelta;
+
+    switch (tape.direction) {
+      case "up":
+        if (tick.lastPrice in this.bar.buyVolumes) {
+          this.bar.buyVolumes[tick.lastPrice] += tape.volumeDelta;
+        } else {
+          this.bar.buyVolumes[tick.lastPrice] = tape.volumeDelta;
+        }
+
+        this.bar.delta += tape.volumeDelta;
+        break;
+
+      case "down":
+        if (tick.lastPrice in this.bar.sellVolumes) {
+          this.bar.sellVolumes[tick.lastPrice] += tape.volumeDelta;
+        } else {
+          this.bar.sellVolumes[tick.lastPrice] = tape.volumeDelta;
+        }
+
+        this.bar.delta -= tape.volumeDelta;
+        break;
+    }
+
+    if (tape.direction !== "none") {
+      const tickVP = getBarVolume(this.bar, tick.lastPrice);
+      const pocVP = getBarVolume(this.bar, this.bar.poc);
+
+      if (tickVP > pocVP) {
+        this.bar.poc = tick.lastPrice;
+      }
+    }
   }
 
   private _createBar(date: number, time: number, tick: TickData): BarInfo {
@@ -91,7 +123,7 @@ export class BarGenerator implements ITickReceiver {
       volume: 0,
       amount: 0,
       delta: 0,
-      poc: 0,
+      poc: tick.lastPrice,
       buyVolumes: {},
       sellVolumes: {},
     };

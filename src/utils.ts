@@ -17,6 +17,15 @@ export const parseSymbol = (symbol: string): [string, string] => {
   return [instrumentId, exchangeId];
 };
 
+export const getBarBuyVolume = (bar: BarData, price: number) =>
+  bar.buyVolumes[price] ?? 0;
+
+export const getBarSellVolume = (bar: BarData, price: number) =>
+  bar.sellVolumes[price] ?? 0;
+
+export const getBarVolume = (bar: BarData, price: number) =>
+  getBarBuyVolume(bar, price) + getBarSellVolume(bar, price);
+
 export const mergeBarData = (bars: BarData[]): BarData => {
   if (bars.length === 0) {
     throw new Error("Bars is empty");
@@ -52,6 +61,44 @@ export const mergeBarData = (bars: BarData[]): BarData => {
 
     bar.volume += bars[i].volume;
     bar.amount += bars[i].amount;
+
+    for (const price in bars[i].buyVolumes) {
+      if (price in bar.buyVolumes) {
+        bar.buyVolumes[price] += bars[i].buyVolumes[price];
+      } else {
+        bar.buyVolumes[price] = bars[i].buyVolumes[price];
+      }
+
+      bar.delta += bars[i].buyVolumes[price];
+
+      const priceVP = bar.buyVolumes[price] + (bar.sellVolumes[price] ?? 0);
+
+      const pocVP =
+        (bar.buyVolumes[bar.poc] ?? 0) + (bar.sellVolumes[bar.poc] ?? 0);
+
+      if (priceVP > pocVP) {
+        bar.poc = parseFloat(price);
+      }
+    }
+
+    for (const price in bars[i].sellVolumes) {
+      if (price in bar.sellVolumes) {
+        bar.sellVolumes[price] += bars[i].sellVolumes[price];
+      } else {
+        bar.sellVolumes[price] = bars[i].sellVolumes[price];
+      }
+
+      bar.delta -= bars[i].sellVolumes[price];
+
+      const priceVP = bar.sellVolumes[price] + (bar.buyVolumes[price] ?? 0);
+
+      const pocVP =
+        (bar.buyVolumes[bar.poc] ?? 0) + (bar.sellVolumes[bar.poc] ?? 0);
+
+      if (priceVP > pocVP) {
+        bar.poc = parseFloat(price);
+      }
+    }
   }
 
   Object.freeze(bar.buyVolumes);
