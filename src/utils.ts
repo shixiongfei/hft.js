@@ -72,9 +72,7 @@ export const mergeBarData = (bars: BarData[]): BarData => {
       bar.delta += bars[i].buyVolumes[price];
 
       const priceVP = bar.buyVolumes[price] + (bar.sellVolumes[price] ?? 0);
-
-      const pocVP =
-        (bar.buyVolumes[bar.poc] ?? 0) + (bar.sellVolumes[bar.poc] ?? 0);
+      const pocVP = getBarVolume(bar, bar.poc);
 
       if (priceVP > pocVP) {
         bar.poc = parseFloat(price);
@@ -91,9 +89,7 @@ export const mergeBarData = (bars: BarData[]): BarData => {
       bar.delta -= bars[i].sellVolumes[price];
 
       const priceVP = bar.sellVolumes[price] + (bar.buyVolumes[price] ?? 0);
-
-      const pocVP =
-        (bar.buyVolumes[bar.poc] ?? 0) + (bar.sellVolumes[bar.poc] ?? 0);
+      const pocVP = getBarVolume(bar, bar.poc);
 
       if (priceVP > pocVP) {
         bar.poc = parseFloat(price);
