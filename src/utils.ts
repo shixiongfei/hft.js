@@ -53,23 +53,27 @@ export const mergeBarData = (bars: BarData[]): BarData => {
   };
 
   for (let i = 1; i < bars.length; ++i) {
-    bar.openInterest = bars[i].openInterest;
-    bar.closePrice = bars[i].closePrice;
+    const nextBar = bars[i];
 
-    bar.highPrice = Math.max(bar.highPrice, bars[i].highPrice);
-    bar.lowPrice = Math.min(bar.lowPrice, bars[i].lowPrice);
+    bar.openInterest = nextBar.openInterest;
+    bar.closePrice = nextBar.closePrice;
 
-    bar.volume += bars[i].volume;
-    bar.amount += bars[i].amount;
+    bar.highPrice = Math.max(bar.highPrice, nextBar.highPrice);
+    bar.lowPrice = Math.min(bar.lowPrice, nextBar.lowPrice);
 
-    for (const price in bars[i].buyVolumes) {
+    bar.volume += nextBar.volume;
+    bar.amount += nextBar.amount;
+
+    for (const price in nextBar.buyVolumes) {
+      const volumeDelta = nextBar.buyVolumes[price];
+
       if (price in bar.buyVolumes) {
-        bar.buyVolumes[price] += bars[i].buyVolumes[price];
+        bar.buyVolumes[price] += volumeDelta;
       } else {
-        bar.buyVolumes[price] = bars[i].buyVolumes[price];
+        bar.buyVolumes[price] = volumeDelta;
       }
 
-      bar.delta += bars[i].buyVolumes[price];
+      bar.delta += volumeDelta;
 
       const priceVP = bar.buyVolumes[price] + (bar.sellVolumes[price] ?? 0);
       const pocVP = getBarVolume(bar, bar.poc);
@@ -79,14 +83,16 @@ export const mergeBarData = (bars: BarData[]): BarData => {
       }
     }
 
-    for (const price in bars[i].sellVolumes) {
+    for (const price in nextBar.sellVolumes) {
+      const volumeDelta = nextBar.sellVolumes[price];
+
       if (price in bar.sellVolumes) {
-        bar.sellVolumes[price] += bars[i].sellVolumes[price];
+        bar.sellVolumes[price] += volumeDelta;
       } else {
-        bar.sellVolumes[price] = bars[i].sellVolumes[price];
+        bar.sellVolumes[price] = volumeDelta;
       }
 
-      bar.delta -= bars[i].sellVolumes[price];
+      bar.delta -= volumeDelta;
 
       const priceVP = bar.sellVolumes[price] + (bar.buyVolumes[price] ?? 0);
       const pocVP = getBarVolume(bar, bar.poc);
