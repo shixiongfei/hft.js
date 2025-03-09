@@ -104,8 +104,8 @@ export interface IBarUnsubscriber {
 }
 
 export interface IStrategy extends IRiskManagerReceiver, IOrderReceiver {
-  onInit: (subscriber: ITickSubscriber) => void;
-  onDestroy: (unsubscriber: ITickUnsubscriber) => void;
+  onInit: () => void;
+  onDestroy: () => void;
 }
 
 export interface ICommissionRateReceiver {

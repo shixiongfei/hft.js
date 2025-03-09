@@ -52,8 +52,8 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver {
     this.engine = engine;
   }
 
-  onInit(subscriber: hft.ITickSubscriber) {
-    subscriber.subscribe([this.symbol], this);
+  onInit() {
+    this.engine.subscribe([this.symbol], this);
     console.log("Strategy init");
 
     console.log("Trading Day", this.engine.getTradingDay());
@@ -129,8 +129,8 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver {
     }, 30 * 1000);
   }
 
-  onDestroy(unsubscriber: hft.ITickUnsubscriber) {
-    unsubscriber.unsubscribe([this.symbol], this);
+  onDestroy() {
+    this.engine.unsubscribe([this.symbol], this);
     console.log("Strategy destroy");
   }
 

@@ -67,10 +67,10 @@ export class Broker implements IRuntimeEngine {
           });
         }
 
-        this.strategies.forEach((strategy) => strategy.onInit(this));
+        this.strategies.forEach((strategy) => strategy.onInit());
       },
       onClose: () => {
-        this.strategies.forEach((strategy) => strategy.onDestroy(this));
+        this.strategies.forEach((strategy) => strategy.onDestroy());
         this.market.stopRecorder();
       },
       onError: (error: ErrorType, message: string) => {
