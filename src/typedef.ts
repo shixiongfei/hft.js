@@ -69,6 +69,7 @@ export type TapeData = Readonly<{
   date: number;
   time: number;
   volumeDelta: number;
+  amountDelta: number;
   interestDelta: number;
   type: TapeType;
   direction: TapeDirection;

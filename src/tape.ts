@@ -148,9 +148,12 @@ const calcTapeStatus = (
 };
 
 export const calcTapeData = (tick: TickData, preTick?: TickData): TapeData => {
-  const [volumeDelta, interestDelta] = preTick
-    ? [tick.volume - preTick.volume, tick.openInterest - preTick.openInterest]
-    : [tick.volume, tick.openInterest - tick.preOpenInterest];
+  const volumeDelta = preTick ? tick.volume - preTick.volume : tick.volume;
+  const amountDelta = preTick ? tick.amount - preTick.amount : tick.amount;
+
+  const interestDelta = preTick
+    ? tick.openInterest - preTick.openInterest
+    : tick.openInterest - tick.preOpenInterest;
 
   const tapeType = calcTapeType(volumeDelta, interestDelta);
   const tapeDirection = calcTapeDirection(tick, preTick);
@@ -161,6 +164,7 @@ export const calcTapeData = (tick: TickData, preTick?: TickData): TapeData => {
     date: tick.date,
     time: tick.time,
     volumeDelta: volumeDelta,
+    amountDelta: amountDelta,
     interestDelta: interestDelta,
     type: tapeType,
     direction: tapeDirection,

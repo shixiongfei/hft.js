@@ -146,7 +146,7 @@ export class Broker implements IRuntimeEngine {
       let generator = this.generators.get(symbol);
 
       if (!generator) {
-        generator = createBarGenerator();
+        generator = createBarGenerator(symbol);
 
         this.generators.set(symbol, generator);
         this.subscribe([symbol], generator);
