@@ -69,10 +69,12 @@ export class Broker implements IRuntimeEngine {
 
         this.strategies.forEach((strategy) => strategy.onInit());
       },
+
       onClose: () => {
         this.strategies.forEach((strategy) => strategy.onDestroy());
         this.market.stopRecorder();
       },
+
       onError: (error: ErrorType, message: string) => {
         if (errorReceiver) {
           errorReceiver.onError(error, message);
@@ -84,9 +86,11 @@ export class Broker implements IRuntimeEngine {
       onOpen: () => {
         this.market.open(this.marketLifecycle);
       },
+
       onClose: () => {
         this.market.close(this.marketLifecycle);
       },
+
       onError: (error: ErrorType, message: string) => {
         if (errorReceiver) {
           errorReceiver.onError(error, message);

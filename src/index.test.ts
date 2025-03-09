@@ -43,8 +43,9 @@ if (!existsFile(config.FlowMdPath)) {
   fs.mkdirSync(config.FlowMdPath, { recursive: true });
 }
 
-class Strategy implements hft.IStrategy, hft.ITickReceiver {
+class Strategy implements hft.IStrategy, hft.ITickReceiver, hft.IBarReceiver {
   private lastTick?: hft.TickData;
+  private lastBar?: hft.BarData;
   private engine: hft.IRuntimeEngine;
   readonly symbol = "ni2505.SHFE";
 
@@ -54,8 +55,9 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver {
 
   onInit() {
     this.engine.subscribe([this.symbol], this);
-    console.log("Strategy init");
+    this.engine.subscribeBar([this.symbol], this);
 
+    console.log("Strategy init");
     console.log("Trading Day", this.engine.getTradingDay());
 
     this.engine.queryInstrument(this.symbol, {
@@ -111,6 +113,10 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver {
         return;
       }
 
+      if (this.lastBar) {
+        console.log(this.lastBar);
+      }
+
       this.engine.buyOpen(
         this,
         this.symbol,
@@ -130,6 +136,7 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver {
   }
 
   onDestroy() {
+    this.engine.unsubscribeBar([this.symbol], this);
     this.engine.unsubscribe([this.symbol], this);
     console.log("Strategy destroy");
   }
@@ -157,6 +164,10 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver {
               position.today.long.position - position.today.long.frozen;
 
             if (todayLong > 0) {
+              if (this.lastBar) {
+                console.log(this.lastBar);
+              }
+
               this.engine.sellClose(
                 this,
                 this.symbol,
@@ -193,6 +204,12 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver {
     //console.log(tape);
 
     this.lastTick = tick;
+  }
+
+  onBar(bar: hft.BarData) {
+    //console.log(bar)
+
+    this.lastBar = bar;
   }
 }
 
