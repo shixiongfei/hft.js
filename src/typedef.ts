@@ -65,15 +65,12 @@ export type TapeStatus =
   | "invalid";
 
 export type TapeData = Readonly<{
-  symbol: string;
-  date: number;
-  time: number;
-  volumeDelta: number;
-  amountDelta: number;
-  interestDelta: number;
   type: TapeType;
   direction: TapeDirection;
   status: TapeStatus;
+  interestDelta: number;
+  volumeDelta: number;
+  amountDelta: number;
 }>;
 
 export type PositionCell = Readonly<{

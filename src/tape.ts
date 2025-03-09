@@ -160,14 +160,11 @@ export const calcTapeData = (tick: TickData, preTick?: TickData): TapeData => {
   const tapeStatus = calcTapeStatus(tapeType, tapeDirection);
 
   return Object.freeze({
-    symbol: tick.symbol,
-    date: tick.date,
-    time: tick.time,
-    volumeDelta: volumeDelta,
-    amountDelta: amountDelta,
-    interestDelta: interestDelta,
     type: tapeType,
     direction: tapeDirection,
     status: tapeStatus,
+    interestDelta: interestDelta,
+    volumeDelta: volumeDelta,
+    amountDelta: amountDelta,
   });
 };
