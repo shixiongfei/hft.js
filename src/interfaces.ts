@@ -21,6 +21,7 @@ import {
   PositionDetail,
   ProductType,
   SideType,
+  TapeData,
   TickData,
   TradeData,
   TradingAccount,
@@ -79,7 +80,7 @@ export interface IOrdersReceiver {
 }
 
 export interface ITickReceiver {
-  onTick: (tick: TickData) => void;
+  onTick: (tick: TickData, tape: TapeData) => void;
 }
 
 export interface ITickSubscriber {

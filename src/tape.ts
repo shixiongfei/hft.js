@@ -159,7 +159,7 @@ export const calcTapeData = (tick: TickData, preTick?: TickData): TapeData => {
   const tapeDirection = calcTapeDirection(tick, preTick);
   const tapeStatus = calcTapeStatus(tapeType, tapeDirection);
 
-  return {
+  return Object.freeze({
     symbol: tick.symbol,
     date: tick.date,
     time: tick.time,
@@ -169,5 +169,5 @@ export const calcTapeData = (tick: TickData, preTick?: TickData): TapeData => {
     type: tapeType,
     direction: tapeDirection,
     status: tapeStatus,
-  };
+  });
 };

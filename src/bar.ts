@@ -9,16 +9,14 @@
  * https://github.com/shixiongfei/hft.js
  */
 
-import { BarData, TickData, Writeable } from "./typedef.js";
+import { BarData, TapeData, TickData, Writeable } from "./typedef.js";
 import { IBarReceiver, ITickReceiver } from "./interfaces.js";
-import { calcTapeData } from "./tape.js";
 
 export type BarInfo = Writeable<BarData>;
 
 export class BarGenerator implements ITickReceiver {
   private readonly receivers: IBarReceiver[];
   private readonly symbol: string;
-  private lastTick?: TickData;
   private bar?: BarInfo;
 
   constructor(symbol: string) {
@@ -44,7 +42,7 @@ export class BarGenerator implements ITickReceiver {
     }
   }
 
-  onTick(tick: TickData) {
+  onTick(tick: TickData, tape: TapeData) {
     if (tick.symbol !== this.symbol) {
       return;
     }
@@ -61,8 +59,6 @@ export class BarGenerator implements ITickReceiver {
       this.receivers.forEach((receiver) => receiver.onBar(bar));
       this.bar = undefined;
     }
-
-    const tape = calcTapeData(tick, this.lastTick);
 
     if (tape.volumeDelta === 0) {
       return;

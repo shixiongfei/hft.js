@@ -12,7 +12,6 @@
 export * from "./typedef.js";
 export * from "./interfaces.js";
 export * from "./broker.js";
-export * from "./tape.js";
 export * from "./trader.js";
 export * from "./market.js";
 export * from "./utils.js";

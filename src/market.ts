@@ -12,6 +12,7 @@
 import ctp from "napi-ctp";
 import { CTPProvider, CTPUserInfo } from "./provider.js";
 import { InstrumentData, OrderBook, TickData } from "./typedef.js";
+import { calcTapeData } from "./tape.js";
 import { parseSymbol } from "./utils.js";
 import {
   ILifecycleListener,
@@ -28,8 +29,10 @@ export class Market extends CTPProvider implements IMarketProvider {
   private marketApi?: ctp.MarketData;
   private recorder?: IMarketRecorderReceiver;
   private recorderSymbols?: IMarketRecorderSymbols;
+  private tradingDay: number;
   private readonly recordings: Set<string>;
   private readonly symbols: Map<string, string>;
+  private readonly lastTicks: Map<string, TickData>;
   private readonly subscribers: Map<string, ITickReceiver[]>;
 
   constructor(
@@ -38,8 +41,10 @@ export class Market extends CTPProvider implements IMarketProvider {
     userInfo: CTPUserInfo,
   ) {
     super(flowMdPath, frontMdAddrs, userInfo);
+    this.tradingDay = 0;
     this.recordings = new Set();
     this.symbols = new Map();
+    this.lastTicks = new Map();
     this.subscribers = new Map();
   }
 
@@ -75,6 +80,13 @@ export class Market extends CTPProvider implements IMarketProvider {
           return;
         }
 
+        const tradingDay = parseInt(this.marketApi!.getTradingDay());
+
+        if (this.tradingDay !== tradingDay) {
+          this.lastTicks.clear();
+          this.tradingDay = tradingDay;
+        }
+
         const instrumentIds = new Set([
           ...Array.from(this.recordings),
           ...Object.keys(this.subscribers),
@@ -105,12 +117,6 @@ export class Market extends CTPProvider implements IMarketProvider {
         const symbol = this.symbols.get(instrumentId);
 
         if (!symbol) {
-          return;
-        }
-
-        const receivers = this.subscribers.get(instrumentId);
-
-        if (!receivers || receivers.length === 0) {
           return;
         }
 
@@ -226,7 +232,16 @@ export class Market extends CTPProvider implements IMarketProvider {
           orderBook: Object.freeze(orderBook),
         });
 
-        receivers.forEach((receiver) => receiver.onTick(tick));
+        const receivers = this.subscribers.get(instrumentId);
+
+        if (receivers && receivers.length > 0) {
+          const lastTick = this.lastTicks.get(instrumentId);
+          const tape = calcTapeData(tick, lastTick);
+
+          receivers.forEach((receiver) => receiver.onTick(tick, tape));
+        }
+
+        this.lastTicks.set(instrumentId, tick);
       },
     );
 

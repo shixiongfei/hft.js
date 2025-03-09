@@ -188,9 +188,7 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver {
     console.log("Reject Order", order);
   }
 
-  onTick(tick: hft.TickData) {
-    //const tape = hft.calcTapeData(tick, this.lastTick);
-
+  onTick(tick: hft.TickData, tape: hft.TapeData) {
     //console.log(tick);
     //console.log(tape);
 
