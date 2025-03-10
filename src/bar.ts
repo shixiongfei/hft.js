@@ -18,11 +18,13 @@ export type BarInfo = Writeable<BarData>;
 export class BarGenerator implements ITickReceiver {
   private readonly receivers: IBarReceiver[];
   private readonly symbol: string;
+  private shouldUpdate: number;
   private bar?: BarInfo;
 
   constructor(symbol: string) {
     this.receivers = [];
     this.symbol = symbol;
+    this.shouldUpdate = 0;
   }
 
   get isWorking() {
@@ -31,6 +33,10 @@ export class BarGenerator implements ITickReceiver {
 
   addReceiver(receiver: IBarReceiver) {
     if (!this.receivers.includes(receiver)) {
+      if (receiver.onUpdateBar) {
+        this.shouldUpdate += 1;
+      }
+
       this.receivers.push(receiver);
     }
   }
@@ -39,6 +45,10 @@ export class BarGenerator implements ITickReceiver {
     const index = this.receivers.indexOf(receiver);
 
     if (index >= 0) {
+      if (receiver.onUpdateBar) {
+        this.shouldUpdate -= 1;
+      }
+
       this.receivers.splice(index, 1);
     }
   }
@@ -107,6 +117,20 @@ export class BarGenerator implements ITickReceiver {
       if (tickVP > pocVP) {
         this.bar.poc = tick.lastPrice;
       }
+    }
+
+    if (this.shouldUpdate > 0) {
+      const bar: BarData = Object.freeze({
+        ...this.bar,
+        buyVolumes: Object.freeze({ ...this.bar.buyVolumes }),
+        sellVolumes: Object.freeze({ ...this.bar.sellVolumes }),
+      });
+
+      this.receivers.forEach((receiver) => {
+        if (receiver.onUpdateBar) {
+          receiver.onUpdateBar(bar);
+        }
+      });
     }
   }
 

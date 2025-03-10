@@ -94,6 +94,7 @@ export interface ITickUnsubscriber {
 
 export interface IBarReceiver {
   onBar: (bar: BarData) => void;
+  onUpdateBar?: (bar: BarData) => void;
 }
 
 export interface IBarSubscriber {
