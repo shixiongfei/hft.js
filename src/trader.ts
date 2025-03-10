@@ -534,6 +534,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
         if (options.isLast) {
           const positionDetails = this.positionDetails.map(
             this._toPositionDetail,
+            this,
           );
           const receivers = this.positionDetailsQueue.toArray();
 

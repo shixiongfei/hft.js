@@ -207,7 +207,7 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver, hft.IBarReceiver {
   }
 
   onBar(bar: hft.BarData) {
-    //console.log(bar)
+    console.log(bar);
 
     this.lastBar = bar;
   }
