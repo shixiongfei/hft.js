@@ -152,7 +152,7 @@ export interface IOrderEmitter {
   removeReceiver: (receiver: IOrderReceiver) => void;
 }
 
-export interface IQueryApi {
+export interface IQueryProvider {
   getTradingDay: () => number;
 
   getOrderStatistics: () => OrderStatistic[];
@@ -209,7 +209,10 @@ export type ICancelOrderResultReceiver = {
   onCancelOrderError: (reason: string) => void;
 };
 
-export interface ITraderProvider extends IProvider, IOrderEmitter, IQueryApi {
+export interface ITraderProvider
+  extends IProvider,
+    IOrderEmitter,
+    IQueryProvider {
   placeOrder: (
     symbol: string,
     offset: OffsetType,
@@ -224,7 +227,7 @@ export interface ITraderProvider extends IProvider, IOrderEmitter, IQueryApi {
 }
 
 export interface IRuntimeEngine
-  extends IQueryApi,
+  extends IQueryProvider,
     ITickSubscriber,
     ITickUnsubscriber,
     IBarSubscriber,
