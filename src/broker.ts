@@ -327,6 +327,14 @@ export class Broker implements IRuntimeEngine {
     return this.trader.getTradingDay();
   }
 
+  getOrderStatistics() {
+    return this.trader.getOrderStatistics();
+  }
+
+  getOrderStatistic(symbol: string) {
+    return this.trader.getOrderStatistic(symbol);
+  }
+
   queryCommissionRate(symbol: string, receiver: ICommissionRateReceiver) {
     return this.trader.queryCommissionRate(symbol, receiver);
   }

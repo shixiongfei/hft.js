@@ -141,7 +141,7 @@ export type OrderStatistic = Readonly<{
   symbol: string;
   places: number;
   entrusts: number;
-  trades: number;
+  filleds: number;
   cancels: number;
   rejects: number;
 }>;

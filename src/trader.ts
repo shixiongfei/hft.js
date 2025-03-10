@@ -20,6 +20,7 @@ import {
   OffsetType,
   OrderData,
   OrderFlag,
+  OrderStatistic,
   OrderStatus,
   PositionData,
   PositionDetail,
@@ -54,6 +55,7 @@ type CommissionRateQuery = {
 };
 
 type PositionInfo = Writeable<PositionData>;
+type OrderStat = Writeable<OrderStatistic>;
 
 export class Trader extends CTPProvider implements ITraderProvider {
   private traderApi?: ctp.Trader;
@@ -74,6 +76,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
   private readonly commRates: Map<string, ctp.InstrumentCommissionRateField>;
   private readonly placeOrders: Map<number, IPlaceOrderResultReceiver>;
   private readonly cancelOrders: Map<number, ICancelOrderResultReceiver>;
+  private readonly orderStatistics: Map<string, OrderStat>;
   private readonly marginRatesQueue: Denque<MarginRateQuery>;
   private readonly commRatesQueue: Denque<CommissionRateQuery>;
   private readonly accountsQueue: Denque<ITradingAccountsReceiver>;
@@ -102,6 +105,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     this.commRates = new Map();
     this.placeOrders = new Map();
     this.cancelOrders = new Map();
+    this.orderStatistics = new Map();
     this.marginRatesQueue = new Denque();
     this.commRatesQueue = new Denque();
     this.accountsQueue = new Denque();
@@ -151,6 +155,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
         if (this.tradingDay !== tradingDay) {
           this.marginRates.clear();
           this.commRates.clear();
+          this.orderStatistics.clear();
           this.tradingDay = tradingDay;
         }
 
@@ -349,9 +354,25 @@ export class Trader extends CTPProvider implements ITraderProvider {
                   orderData.volume,
                 );
               }
+
+              const statistic = this._ensureOrderStatistic(symbol);
+
+              statistic.entrusts += 1;
             }
 
             this.receivers.forEach((receiver) => receiver.onEntrust(orderData));
+          }
+          break;
+
+        case "filled":
+          {
+            const symbol = this._toSymbol(order.InstrumentID);
+
+            if (symbol) {
+              const statistic = this._ensureOrderStatistic(symbol);
+
+              statistic.filleds += 1;
+            }
           }
           break;
 
@@ -376,6 +397,10 @@ export class Trader extends CTPProvider implements ITraderProvider {
                   orderData.volume,
                 );
               }
+
+              const statistic = this._ensureOrderStatistic(symbol);
+
+              statistic.cancels += 1;
             }
 
             this.receivers.forEach((receiver) => receiver.onCancel(orderData));
@@ -385,6 +410,14 @@ export class Trader extends CTPProvider implements ITraderProvider {
         case "rejected":
           {
             const orderData = this._toOrderData(order);
+            const symbol = this._toSymbol(order.InstrumentID);
+
+            if (symbol) {
+              const statistic = this._ensureOrderStatistic(symbol);
+
+              statistic.rejects += 1;
+            }
+
             this.receivers.forEach((receiver) => receiver.onReject(orderData));
           }
           break;
@@ -614,6 +647,28 @@ export class Trader extends CTPProvider implements ITraderProvider {
 
   getTradingDay() {
     return this.tradingDay;
+  }
+
+  getOrderStatistics() {
+    const statistics = Array.from(this.orderStatistics.values());
+    return statistics.map((stat) => Object.freeze({ ...stat }));
+  }
+
+  getOrderStatistic(symbol: string) {
+    const statistic = this.orderStatistics.get(symbol);
+
+    if (!statistic) {
+      return Object.freeze({
+        symbol: symbol,
+        places: 0,
+        entrusts: 0,
+        filleds: 0,
+        cancels: 0,
+        rejects: 0,
+      });
+    }
+
+    return Object.freeze({ ...statistic });
   }
 
   queryCommissionRate(symbol: string, receiver: ICommissionRateReceiver) {
@@ -851,6 +906,10 @@ export class Trader extends CTPProvider implements ITraderProvider {
         return;
       }
 
+      const statistic = this._ensureOrderStatistic(symbol);
+
+      statistic.places += 1;
+
       this.placeOrders.set(requestId, receiver);
 
       const receiptId = `${this.frontId}:${this.sessionId}:${orderRef}`;
@@ -1019,7 +1078,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     }
   }
 
-  private _ensurePositionInfo(symbol: string) {
+  private _ensurePositionInfo(symbol: string): PositionInfo {
     let position = this.positions.get(symbol);
 
     if (!position) {
@@ -1040,6 +1099,25 @@ export class Trader extends CTPProvider implements ITraderProvider {
     }
 
     return position;
+  }
+
+  private _ensureOrderStatistic(symbol: string): OrderStat {
+    let statistic = this.orderStatistics.get(symbol);
+
+    if (!statistic) {
+      statistic = {
+        symbol: symbol,
+        places: 0,
+        entrusts: 0,
+        filleds: 0,
+        cancels: 0,
+        rejects: 0,
+      };
+
+      this.orderStatistics.set(symbol, statistic);
+    }
+
+    return statistic;
   }
 
   private _calcPosition(

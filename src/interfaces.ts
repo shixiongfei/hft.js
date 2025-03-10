@@ -17,6 +17,7 @@ import {
   OffsetType,
   OrderData,
   OrderFlag,
+  OrderStatistic,
   PositionData,
   PositionDetail,
   ProductType,
@@ -152,6 +153,9 @@ export interface IOrderEmitter {
 
 export interface IQueryApi {
   getTradingDay: () => number;
+
+  getOrderStatistics: () => OrderStatistic[];
+  getOrderStatistic: (symbol: string) => OrderStatistic;
 
   queryCommissionRate: (
     symbol: string,
