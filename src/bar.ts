@@ -128,7 +128,7 @@ export class BarGenerator implements ITickReceiver {
 
       this.receivers.forEach((receiver) => {
         if (receiver.onUpdateBar) {
-          receiver.onUpdateBar(bar);
+          receiver.onUpdateBar(bar, tick, tape);
         }
       });
     }
