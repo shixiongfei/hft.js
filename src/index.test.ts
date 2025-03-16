@@ -219,11 +219,7 @@ const trader = hft.createTrader(
   config.UserInfo,
 );
 
-const market = hft.createMarket(
-  config.FlowMdPath,
-  config.FrontMdAddrs,
-  config.UserInfo,
-);
+const market = hft.createMarket(config.FlowMdPath, config.FrontMdAddrs);
 
 const enableRecorder = false;
 

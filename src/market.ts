@@ -10,7 +10,7 @@
  */
 
 import ctp from "napi-ctp";
-import { CTPProvider, CTPUserInfo } from "./provider.js";
+import { CTPProvider } from "./provider.js";
 import { InstrumentData, OrderBook, TickData } from "./typedef.js";
 import { calcTapeData } from "./tape.js";
 import { parseSymbol } from "./utils.js";
@@ -35,12 +35,8 @@ export class Market extends CTPProvider implements IMarketProvider {
   private readonly lastTicks: Map<string, TickData>;
   private readonly subscribers: Map<string, ITickReceiver[]>;
 
-  constructor(
-    flowMdPath: string,
-    frontMdAddrs: string | string[],
-    userInfo: CTPUserInfo,
-  ) {
-    super(flowMdPath, frontMdAddrs, userInfo);
+  constructor(flowMdPath: string, frontMdAddrs: string | string[]) {
+    super(flowMdPath, frontMdAddrs);
     this.tradingDay = 0;
     this.recordings = new Set();
     this.symbols = new Map();
@@ -68,7 +64,7 @@ export class Market extends CTPProvider implements IMarketProvider {
     this.marketApi = ctp.createMarketData(this.flowPath, this.frontAddrs);
 
     this.marketApi.on(ctp.MarketDataEvent.FrontConnected, () => {
-      this._withRetry(() => this.marketApi!.reqUserLogin(this.userInfo));
+      this._withRetry(() => this.marketApi!.reqUserLogin());
     });
 
     let fired = false;
@@ -382,5 +378,4 @@ export class Market extends CTPProvider implements IMarketProvider {
 export const createMarket = (
   flowMdPath: string,
   frontMdAddrs: string | string[],
-  userInfo: CTPUserInfo,
-) => new Market(flowMdPath, frontMdAddrs, userInfo);
+) => new Market(flowMdPath, frontMdAddrs);

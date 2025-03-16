@@ -11,7 +11,7 @@
 
 import Denque from "denque";
 import ctp from "napi-ctp";
-import { CTPProvider, CTPUserInfo } from "./provider.js";
+import { CTPProvider } from "./provider.js";
 import { parseSymbol } from "./utils.js";
 import {
   CommissionRate,
@@ -57,6 +57,16 @@ type CommissionRateQuery = {
 type PositionInfo = Writeable<PositionData>;
 type OrderStat = Writeable<OrderStatistic>;
 
+export type CTPUserInfo = {
+  BrokerID: string;
+  UserID: string;
+  Password: string;
+  InvestorID: string;
+  UserProductInfo: string;
+  AuthCode: string;
+  AppID: string;
+};
+
 export class Trader extends CTPProvider implements ITraderProvider {
   private traderApi?: ctp.Trader;
   private tradingDay: number;
@@ -65,6 +75,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
   private orderRef: number;
   private accountsQueryTime: number;
   private positionDetailsChanged: boolean;
+  private readonly userInfo: CTPUserInfo;
   private readonly receivers: IOrderReceiver[];
   private readonly accounts: ctp.TradingAccountField[];
   private readonly positionDetails: ctp.InvestorPositionDetailField[];
@@ -87,13 +98,14 @@ export class Trader extends CTPProvider implements ITraderProvider {
     frontTdAddrs: string | string[],
     userInfo: CTPUserInfo,
   ) {
-    super(flowTdPath, frontTdAddrs, userInfo);
+    super(flowTdPath, frontTdAddrs);
     this.tradingDay = 0;
     this.frontId = 0;
     this.sessionId = 0;
     this.orderRef = 0;
     this.accountsQueryTime = 0;
     this.positionDetailsChanged = true;
+    this.userInfo = userInfo;
     this.receivers = [];
     this.accounts = [];
     this.positionDetails = [];
