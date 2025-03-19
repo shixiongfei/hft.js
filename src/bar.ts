@@ -22,10 +22,10 @@ export class BarGenerator implements ITickReceiver {
   private shouldUpdate: number;
   private bar?: BarInfo;
 
-  constructor(symbol: string, maxVolume?: number) {
+  constructor(symbol: string, maxVolume = 0) {
     this.receivers = [];
     this.symbol = symbol;
-    this.maxVolume = maxVolume ?? 0;
+    this.maxVolume = maxVolume;
     this.shouldUpdate = 0;
   }
 
@@ -165,5 +165,5 @@ export class BarGenerator implements ITickReceiver {
   }
 }
 
-export const createBarGenerator = (symbol: string, maxVolume?: number) =>
+export const createBarGenerator = (symbol: string, maxVolume = 0) =>
   new BarGenerator(symbol, maxVolume);
