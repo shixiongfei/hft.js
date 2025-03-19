@@ -121,7 +121,7 @@ export class BarGenerator implements ITickReceiver {
         break;
     }
 
-    if (tape.direction !== "none") {
+    if (tick.lastPrice !== this.bar.poc && tape.direction !== "none") {
       const tickVP = getBarVolume(this.bar, tick.lastPrice);
       const pocVP = getBarVolume(this.bar, this.bar.poc);
 
