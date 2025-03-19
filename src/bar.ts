@@ -18,15 +18,15 @@ export type BarInfo = Writeable<BarData>;
 export class BarGenerator implements ITickReceiver {
   private readonly receivers: IBarReceiver[];
   private readonly symbol: string;
+  private readonly maxVolume: number;
   private shouldUpdate: number;
-  private maxVolume: number;
   private bar?: BarInfo;
 
   constructor(symbol: string, maxVolume?: number) {
     this.receivers = [];
     this.symbol = symbol;
-    this.shouldUpdate = 0;
     this.maxVolume = maxVolume ?? 0;
+    this.shouldUpdate = 0;
   }
 
   get isWorking() {
