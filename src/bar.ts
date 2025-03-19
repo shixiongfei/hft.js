@@ -19,12 +19,14 @@ export class BarGenerator implements ITickReceiver {
   private readonly receivers: IBarReceiver[];
   private readonly symbol: string;
   private shouldUpdate: number;
+  private maxVolume: number;
   private bar?: BarInfo;
 
-  constructor(symbol: string) {
+  constructor(symbol: string, maxVolume?: number) {
     this.receivers = [];
     this.symbol = symbol;
     this.shouldUpdate = 0;
+    this.maxVolume = maxVolume ?? 0;
   }
 
   get isWorking() {
@@ -59,16 +61,25 @@ export class BarGenerator implements ITickReceiver {
     }
 
     const date = tick.date;
-    const time = Math.floor(tick.time / 100) * 100;
 
-    if (this.bar && (this.bar.date !== date || this.bar.time !== time)) {
-      const bar = Object.freeze(this.bar);
+    const time =
+      this.maxVolume > 0 ? tick.time : Math.floor(tick.time / 100) * 100;
 
-      Object.freeze(bar.buyVolumes);
-      Object.freeze(bar.sellVolumes);
+    if (this.bar) {
+      const isFinished =
+        this.maxVolume > 0
+          ? this.bar.volume >= this.maxVolume
+          : this.bar.date !== date || this.bar.time !== time;
 
-      this.receivers.forEach((receiver) => receiver.onBar(bar));
-      this.bar = undefined;
+      if (isFinished) {
+        const bar = Object.freeze(this.bar);
+
+        Object.freeze(bar.buyVolumes);
+        Object.freeze(bar.sellVolumes);
+
+        this.receivers.forEach((receiver) => receiver.onBar(bar));
+        this.bar = undefined;
+      }
     }
 
     if (tape.volumeDelta === 0) {
@@ -154,4 +165,5 @@ export class BarGenerator implements ITickReceiver {
   }
 }
 
-export const createBarGenerator = (symbol: string) => new BarGenerator(symbol);
+export const createBarGenerator = (symbol: string, maxVolume?: number) =>
+  new BarGenerator(symbol, maxVolume);
