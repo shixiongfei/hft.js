@@ -177,7 +177,7 @@ export type TradingAccount = Readonly<{
   frozenCommission: number;
 }>;
 
-export type ProductType = "future" | "option";
+export type ProductType = "futures" | "options";
 
 export type InstrumentData = Readonly<{
   symbol: string;

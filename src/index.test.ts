@@ -232,7 +232,7 @@ if (enableRecorder) {
     },
     (instruments) =>
       instruments
-        .filter((instrument) => instrument.productType === "future")
+        .filter((instrument) => instrument.productType === "futures")
         .map((instrument) => instrument.symbol),
   );
 }

@@ -772,7 +772,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     const instruments = Array.from(this.instruments.values());
 
     switch (type) {
-      case "future":
+      case "futures":
         receiver.onInstruments(
           instruments
             .filter(
@@ -783,7 +783,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
         );
         break;
 
-      case "option":
+      case "options":
         receiver.onInstruments(
           instruments
             .filter(
@@ -1080,10 +1080,10 @@ export class Trader extends CTPProvider implements ITraderProvider {
   private _calcProductType(productClass: ctp.ProductClassType): ProductType {
     switch (productClass) {
       case ctp.ProductClassType.Futures:
-        return "future";
+        return "futures";
 
       case ctp.ProductClassType.Options:
-        return "option";
+        return "options";
 
       default:
         throw new Error(`Unsupported product class: ${productClass}`);
