@@ -15,3 +15,5 @@ export * from "./broker.js";
 export * from "./trader.js";
 export * from "./market.js";
 export * from "./utils.js";
+export * from "./tape.js";
+export * from "./bar.js";
