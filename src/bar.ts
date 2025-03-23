@@ -29,8 +29,8 @@ export class BarGenerator implements ITickReceiver {
     this.shouldUpdate = 0;
   }
 
-  get isWorking() {
-    return this.receivers.length > 0;
+  get receiverCount() {
+    return this.receivers.length;
   }
 
   addReceiver(receiver: IBarReceiver) {

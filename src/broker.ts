@@ -170,7 +170,7 @@ export class Broker implements IRuntimeEngine {
 
       generator.removeReceiver(receiver);
 
-      if (!generator.isWorking) {
+      if (generator.receiverCount === 0) {
         this.unsubscribe([symbol], generator);
         this.generators.delete(symbol);
       }
