@@ -25,18 +25,29 @@ import {
 const isValidPrice = (x: number) => x !== Number.MAX_VALUE && x !== 0;
 const isValidVolume = (x: number) => x !== Number.MAX_VALUE && x !== 0;
 
+export interface IMarketListener {
+  onSubscribed: (symbol: string) => void;
+  onUnsubscribed: (symbol: string) => void;
+}
+
 export class Market extends CTPProvider implements IMarketProvider {
   private marketApi?: ctp.MarketData;
   private recorder?: IMarketRecorderReceiver;
   private recorderSymbols?: IMarketRecorderSymbols;
   private tradingDay: number;
+  private readonly listener?: IMarketListener;
   private readonly recordings: Set<string>;
   private readonly symbols: Map<string, string>;
   private readonly lastTicks: Map<string, TickData>;
   private readonly subscribers: Map<string, ITickReceiver[]>;
 
-  constructor(flowMdPath: string, frontMdAddrs: string | string[]) {
+  constructor(
+    flowMdPath: string,
+    frontMdAddrs: string | string[],
+    listener?: IMarketListener,
+  ) {
     super(flowMdPath, frontMdAddrs);
+    this.listener = listener;
     this.tradingDay = 0;
     this.recordings = new Set();
     this.symbols = new Map();
@@ -98,6 +109,32 @@ export class Market extends CTPProvider implements IMarketProvider {
           fired = true;
           lifecycle.onOpen();
         }
+      },
+    );
+
+    this.marketApi.on<ctp.SpecificInstrumentField>(
+      ctp.MarketDataEvent.RspSubMarketData,
+      (instrument) => {
+        if (!this.listener) {
+          return;
+        }
+
+        const symbol = this.symbols.get(instrument.InstrumentID);
+
+        this.listener.onSubscribed(symbol ?? instrument.InstrumentID);
+      },
+    );
+
+    this.marketApi.on<ctp.SpecificInstrumentField>(
+      ctp.MarketDataEvent.RspUnSubMarketData,
+      (instrument) => {
+        if (!this.listener) {
+          return;
+        }
+
+        const symbol = this.symbols.get(instrument.InstrumentID);
+
+        this.listener.onUnsubscribed(symbol ?? instrument.InstrumentID);
       },
     );
 
@@ -378,4 +415,5 @@ export class Market extends CTPProvider implements IMarketProvider {
 export const createMarket = (
   flowMdPath: string,
   frontMdAddrs: string | string[],
-) => new Market(flowMdPath, frontMdAddrs);
+  listener?: IMarketListener,
+) => new Market(flowMdPath, frontMdAddrs, listener);

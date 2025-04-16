@@ -219,7 +219,15 @@ const trader = hft.createTrader(
   config.UserInfo,
 );
 
-const market = hft.createMarket(config.FlowMdPath, config.FrontMdAddrs);
+const market = hft.createMarket(config.FlowMdPath, config.FrontMdAddrs, {
+  onSubscribed: (symbol) => {
+    console.log(`Market subscribed: ${symbol}`);
+  },
+
+  onUnsubscribed: (symbol) => {
+    console.log(`Market unsubscribed: ${symbol}`);
+  },
+});
 
 const enableRecorder = false;
 
