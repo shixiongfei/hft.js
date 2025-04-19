@@ -184,11 +184,8 @@ export interface IMarketRecorderReceiver {
 
 export type IMarketRecorderSymbols = (instrument: InstrumentData[]) => string[];
 
-export interface IMarketProvider
-  extends IProvider,
-    ITickSubscriber,
-    ITickUnsubscriber {
-  hasRecorder: () => boolean;
+export interface IMarketRecorderProvider {
+  isRecorderReady: () => boolean;
 
   setRecorder: (
     receiver: IMarketRecorderReceiver,
@@ -197,6 +194,13 @@ export interface IMarketProvider
 
   startRecorder: (instrument: InstrumentData[]) => void;
   stopRecorder: () => void;
+}
+
+export interface IMarketProvider
+  extends IProvider,
+    ITickSubscriber,
+    ITickUnsubscriber {
+  getRecorder: () => IMarketRecorderProvider | undefined;
 }
 
 export type IPlaceOrderResultReceiver = {

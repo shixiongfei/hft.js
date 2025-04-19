@@ -17,6 +17,7 @@ import { parseSymbol } from "./utils.js";
 import {
   ILifecycleListener,
   IMarketProvider,
+  IMarketRecorderProvider,
   IMarketRecorderReceiver,
   IMarketRecorderSymbols,
   ITickReceiver,
@@ -30,7 +31,10 @@ export interface IMarketListener {
   onUnsubscribed: (symbol: string) => void;
 }
 
-export class Market extends CTPProvider implements IMarketProvider {
+export class Market
+  extends CTPProvider
+  implements IMarketProvider, IMarketRecorderProvider
+{
   private marketApi?: ctp.MarketData;
   private recorder?: IMarketRecorderReceiver;
   private recorderSymbols?: IMarketRecorderSymbols;
@@ -55,7 +59,11 @@ export class Market extends CTPProvider implements IMarketProvider {
     this.subscribers = new Map();
   }
 
-  hasRecorder() {
+  getRecorder() {
+    return this;
+  }
+
+  isRecorderReady() {
     return !!this.recorder;
   }
 

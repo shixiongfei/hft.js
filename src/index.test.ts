@@ -229,10 +229,11 @@ const market = hft.createMarket(config.FlowMdPath, config.FrontMdAddrs, {
   },
 });
 
+const recorder = market.getRecorder();
 const enableRecorder = false;
 
-if (enableRecorder) {
-  market.setRecorder(
+if (enableRecorder && recorder) {
+  recorder.setRecorder(
     {
       onMarketData: (marketData: ctp.DepthMarketDataField) => {
         console.log(marketData.InstrumentID, marketData.LastPrice);
