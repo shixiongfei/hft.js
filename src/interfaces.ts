@@ -148,8 +148,8 @@ export interface IProvider {
 }
 
 export interface IOrderEmitter {
-  addReceiver: (receiver: IOrderReceiver) => void;
-  removeReceiver: (receiver: IOrderReceiver) => void;
+  addOrderReceiver: (receiver: IOrderReceiver) => void;
+  removeOrderReceiver: (receiver: IOrderReceiver) => void;
 }
 
 export interface IQueryProvider {

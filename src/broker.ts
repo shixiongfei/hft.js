@@ -117,7 +117,7 @@ export class Broker implements IRuntimeEngine {
   addStrategy(strategy: IStrategy) {
     if (!this.strategies.includes(strategy)) {
       this.strategies.push(strategy);
-      this.trader.addReceiver(strategy);
+      this.trader.addOrderReceiver(strategy);
     }
   }
 
@@ -129,7 +129,7 @@ export class Broker implements IRuntimeEngine {
     }
 
     this.strategies.splice(index, 1);
-    this.trader.removeReceiver(strategy);
+    this.trader.removeOrderReceiver(strategy);
   }
 
   addPlaceOrderRiskManager(riskMgr: IPlaceOrderRiskManager) {

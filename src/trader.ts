@@ -641,13 +641,13 @@ export class Trader extends CTPProvider implements ITraderProvider {
     lifecycle.onClose();
   }
 
-  addReceiver(receiver: IOrderReceiver) {
+  addOrderReceiver(receiver: IOrderReceiver) {
     if (!this.receivers.includes(receiver)) {
       this.receivers.push(receiver);
     }
   }
 
-  removeReceiver(receiver: IOrderReceiver) {
+  removeOrderReceiver(receiver: IOrderReceiver) {
     const index = this.receivers.indexOf(receiver);
 
     if (index < 0) {
