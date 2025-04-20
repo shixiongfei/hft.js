@@ -117,7 +117,8 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver, hft.IBarReceiver {
         console.log(this.lastBar);
       }
 
-      this.engine.buyOpen(
+      hft.buyOpen(
+        this.engine,
         this,
         this.symbol,
         1,
@@ -168,7 +169,8 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver, hft.IBarReceiver {
                 console.log(this.lastBar);
               }
 
-              this.engine.sellClose(
+              hft.sellClose(
+                this.engine,
                 this,
                 this.symbol,
                 todayLong,

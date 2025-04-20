@@ -9,8 +9,13 @@
  * https://github.com/shixiongfei/hft.js
  */
 
-import { BarData } from "./typedef.js";
+import { BarData, OrderFlag } from "./typedef.js";
 import { BarInfo } from "./bar.js";
+import {
+  IPlaceOrderResultReceiver,
+  IRuntimeEngine,
+  IStrategy,
+} from "./interfaces.js";
 
 export const parseSymbol = (symbol: string): [string, string] => {
   const [instrumentId, exchangeId] = symbol.split(".");
@@ -108,3 +113,85 @@ export const mergeBarData = (bars: BarData[]): BarData => {
 
   return Object.freeze(bar);
 };
+
+export const buyOpen = (
+  engine: IRuntimeEngine,
+  strategy: IStrategy,
+  symbol: string,
+  volume: number,
+  price: number,
+  receiver: IPlaceOrderResultReceiver,
+  flag: OrderFlag = "limit",
+) =>
+  engine.placeOrder(
+    strategy,
+    symbol,
+    "open",
+    "long",
+    volume,
+    price,
+    flag,
+    receiver,
+  );
+
+export const buyClose = (
+  engine: IRuntimeEngine,
+  strategy: IStrategy,
+  symbol: string,
+  volume: number,
+  price: number,
+  isToday: boolean,
+  receiver: IPlaceOrderResultReceiver,
+  flag: OrderFlag = "limit",
+) =>
+  engine.placeOrder(
+    strategy,
+    symbol,
+    isToday ? "close-today" : "close",
+    "long",
+    volume,
+    price,
+    flag,
+    receiver,
+  );
+
+export const sellOpen = (
+  engine: IRuntimeEngine,
+  strategy: IStrategy,
+  symbol: string,
+  volume: number,
+  price: number,
+  receiver: IPlaceOrderResultReceiver,
+  flag: OrderFlag = "limit",
+) =>
+  engine.placeOrder(
+    strategy,
+    symbol,
+    "open",
+    "short",
+    volume,
+    price,
+    flag,
+    receiver,
+  );
+
+export const sellClose = (
+  engine: IRuntimeEngine,
+  strategy: IStrategy,
+  symbol: string,
+  volume: number,
+  price: number,
+  isToday: boolean,
+  receiver: IPlaceOrderResultReceiver,
+  flag: OrderFlag = "limit",
+) =>
+  engine.placeOrder(
+    strategy,
+    symbol,
+    isToday ? "close-today" : "close",
+    "short",
+    volume,
+    price,
+    flag,
+    receiver,
+  );
