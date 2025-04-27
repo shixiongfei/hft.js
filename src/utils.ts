@@ -17,6 +17,9 @@ import {
   IStrategy,
 } from "./interfaces.js";
 
+export const isValidPrice = (x: number) => x !== Number.MAX_VALUE && x !== 0;
+export const isValidVolume = (x: number) => x !== Number.MAX_VALUE && x !== 0;
+
 export const parseSymbol = (symbol: string): [string, string] => {
   const [instrumentId, exchangeId] = symbol.split(".");
   return [instrumentId, exchangeId];

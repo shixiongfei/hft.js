@@ -58,7 +58,8 @@ export type ErrorType =
   | "query-commission-rate-error"
   | "query-accounts-error"
   | "query-positions-error"
-  | "query-position-details-error";
+  | "query-position-details-error"
+  | "query-depth-market-data-error";
 
 export interface IErrorReceiver {
   onError: (error: ErrorType, message: string) => void;

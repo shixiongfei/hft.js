@@ -35,11 +35,12 @@ export class CTPProvider {
         return ctp.getLastRequestId();
       }
 
-      if (-2 !== retval && -3 !== retval) {
-        return retval;
+      if (-2 === retval || -3 === retval) {
+        await this._sleep(ms);
+        continue;
       }
 
-      await this._sleep(ms);
+      return retval;
     }
   }
 

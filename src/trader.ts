@@ -12,7 +12,7 @@
 import Denque from "denque";
 import ctp from "napi-ctp";
 import { CTPProvider } from "./provider.js";
-import { parseSymbol } from "./utils.js";
+import { isValidPrice, parseSymbol } from "./utils.js";
 import {
   CommissionRate,
   InstrumentData,
@@ -24,6 +24,7 @@ import {
   OrderStatus,
   PositionData,
   PositionDetail,
+  PriceRange,
   ProductType,
   SideType,
   TradeData,
@@ -67,6 +68,14 @@ export type CTPUserInfo = {
   AppID: string;
 };
 
+type MarketOrder = {
+  symbol: string;
+  offset: OffsetType;
+  side: SideType;
+  volume: number;
+  receiver: IPlaceOrderResultReceiver;
+};
+
 export class Trader extends CTPProvider implements ITraderProvider {
   private traderApi?: ctp.Trader;
   private tradingDay: number;
@@ -87,6 +96,8 @@ export class Trader extends CTPProvider implements ITraderProvider {
   private readonly commRates: Map<string, ctp.InstrumentCommissionRateField>;
   private readonly placeOrders: Map<number, IPlaceOrderResultReceiver>;
   private readonly cancelOrders: Map<number, ICancelOrderResultReceiver>;
+  private readonly marketOrdersQueue: Map<string, Denque<MarketOrder>>;
+  private readonly priceLimit: Map<string, PriceRange>;
   private readonly orderStatistics: Map<string, OrderStat>;
   private readonly marginRatesQueue: Denque<MarginRateQuery>;
   private readonly commRatesQueue: Denque<CommissionRateQuery>;
@@ -117,6 +128,8 @@ export class Trader extends CTPProvider implements ITraderProvider {
     this.commRates = new Map();
     this.placeOrders = new Map();
     this.cancelOrders = new Map();
+    this.marketOrdersQueue = new Map();
+    this.priceLimit = new Map();
     this.orderStatistics = new Map();
     this.marginRatesQueue = new Denque();
     this.commRatesQueue = new Denque();
@@ -136,8 +149,9 @@ export class Trader extends CTPProvider implements ITraderProvider {
     });
 
     this.traderApi.on(ctp.TraderEvent.FrontDisconnected, () => {
-      this.placeOrders.clear();
-      this.cancelOrders.clear();
+      this._clearAllMarketOrders();
+      this._clearAllLimitOrders();
+      this._clearAllCancelOrders();
     });
 
     this.traderApi.on<ctp.RspAuthenticateField>(
@@ -168,6 +182,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
           this.marginRates.clear();
           this.commRates.clear();
           this.orderStatistics.clear();
+          this.priceLimit.clear();
           this.tradingDay = tradingDay;
         }
 
@@ -627,6 +642,73 @@ export class Trader extends CTPProvider implements ITraderProvider {
       },
     );
 
+    this.traderApi.on<ctp.DepthMarketDataField>(
+      ctp.TraderEvent.RspQryDepthMarketData,
+      (depthMarketData, options) => {
+        if (
+          this._isErrorResp(lifecycle, options, "query-depth-market-data-error")
+        ) {
+          this._clearAllMarketOrders();
+          return;
+        }
+
+        const isLimitPrice =
+          !isValidPrice(depthMarketData.BandingUpperPrice) ||
+          !isValidPrice(depthMarketData.BandingLowerPrice);
+
+        if (isLimitPrice) {
+          this.priceLimit.set(depthMarketData.InstrumentID, {
+            upper: depthMarketData.UpperLimitPrice,
+            lower: depthMarketData.LowerLimitPrice,
+          });
+        }
+
+        const queue = this.marketOrdersQueue.get(depthMarketData.InstrumentID);
+
+        if (!queue) {
+          return;
+        }
+
+        const upperPrice = isLimitPrice
+          ? depthMarketData.UpperLimitPrice
+          : depthMarketData.BandingUpperPrice;
+
+        const lowerPrice = isLimitPrice
+          ? depthMarketData.LowerLimitPrice
+          : depthMarketData.BandingLowerPrice;
+
+        const orders = queue.toArray();
+
+        orders.forEach((order) => {
+          switch (order.side) {
+            case "long":
+              this._placeLimitOrder(
+                order.symbol,
+                order.offset,
+                order.side,
+                order.volume,
+                upperPrice,
+                order.receiver,
+              );
+              break;
+
+            case "short":
+              this._placeLimitOrder(
+                order.symbol,
+                order.offset,
+                order.side,
+                order.volume,
+                lowerPrice,
+                order.receiver,
+              );
+              break;
+          }
+        });
+
+        this.marketOrdersQueue.delete(depthMarketData.InstrumentID);
+      },
+    );
+
     return true;
   }
 
@@ -862,25 +944,32 @@ export class Trader extends CTPProvider implements ITraderProvider {
     receiver.onOrders(orders);
   }
 
-  placeOrder(
+  private _clearAllLimitOrders() {
+    this.placeOrders.forEach((receiver) => {
+      receiver.onPlaceOrderError("Request Error");
+    });
+
+    this.placeOrders.clear();
+  }
+
+  private _placeLimitOrder(
     symbol: string,
     offset: OffsetType,
     side: SideType,
     volume: number,
     price: number,
-    flag: OrderFlag,
     receiver: IPlaceOrderResultReceiver,
   ) {
-    if (flag !== "limit") {
-      receiver.onPlaceOrderError("Only Supports Limit Order");
-      return;
-    }
-
-    const [instrumentId] = parseSymbol(symbol);
+    const [instrumentId, exchangeId] = parseSymbol(symbol);
     const instrument = this.instruments.get(instrumentId);
 
     if (!instrument) {
       receiver.onPlaceOrderError("Instrument Not Found");
+      return;
+    }
+
+    if (exchangeId !== instrument.ExchangeID) {
+      receiver.onPlaceOrderError("Exchange Id Error");
       return;
     }
 
@@ -908,12 +997,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
         UserForceClose: 0,
       });
     }).then((requestId) => {
-      if (!requestId) {
-        receiver.onPlaceOrderError("Request Failed");
-        return;
-      }
-
-      if (requestId < 0) {
+      if (!requestId || requestId < 0) {
         receiver.onPlaceOrderError("Request Error");
         return;
       }
@@ -930,6 +1014,142 @@ export class Trader extends CTPProvider implements ITraderProvider {
 
       return receiptId;
     });
+  }
+
+  private _clearAllMarketOrders() {
+    this.marketOrdersQueue.forEach((queue) => {
+      const orders = queue.toArray();
+
+      orders.forEach((order) => {
+        order.receiver.onPlaceOrderError("Request Error");
+      });
+    });
+
+    this.marketOrdersQueue.clear();
+  }
+
+  private _cleearMarketOrders(instrumentId: string) {
+    const queue = this.marketOrdersQueue.get(instrumentId);
+
+    if (!queue) {
+      return;
+    }
+
+    const orders = queue.toArray();
+
+    orders.forEach((order) => {
+      order.receiver.onPlaceOrderError("Request Error");
+    });
+
+    this.marketOrdersQueue.delete(instrumentId);
+  }
+
+  private _placeMarketOrder(
+    symbol: string,
+    offset: OffsetType,
+    side: SideType,
+    volume: number,
+    receiver: IPlaceOrderResultReceiver,
+  ) {
+    const [instrumentId, exchangeId] = parseSymbol(symbol);
+    const instrument = this.instruments.get(instrumentId);
+
+    if (!instrument) {
+      receiver.onPlaceOrderError("Instrument Not Found");
+      return;
+    }
+
+    if (exchangeId !== instrument.ExchangeID) {
+      receiver.onPlaceOrderError("Exchange Id Error");
+      return;
+    }
+
+    const priceRange = this.priceLimit.get(instrumentId);
+
+    if (priceRange) {
+      switch (side) {
+        case "long":
+          this._placeLimitOrder(
+            symbol,
+            offset,
+            side,
+            volume,
+            priceRange.upper,
+            receiver,
+          );
+          break;
+
+        case "short":
+          this._placeLimitOrder(
+            symbol,
+            offset,
+            side,
+            volume,
+            priceRange.lower,
+            receiver,
+          );
+          break;
+      }
+
+      return;
+    }
+
+    let queue = this.marketOrdersQueue.get(instrumentId);
+
+    if (queue) {
+      queue.push({ symbol, offset, side, volume, receiver });
+      return;
+    }
+
+    queue = new Denque();
+    this.marketOrdersQueue.set(instrumentId, queue);
+
+    this._withRetry(() =>
+      this.traderApi?.reqQryDepthMarketData({
+        ExchangeID: exchangeId,
+        InstrumentID: instrumentId,
+      }),
+    ).then((requestId) => {
+      if (!requestId || requestId < 0) {
+        this._cleearMarketOrders(instrumentId);
+        return;
+      }
+
+      queue.push({ symbol, offset, side, volume, receiver });
+    });
+  }
+
+  placeOrder(
+    symbol: string,
+    offset: OffsetType,
+    side: SideType,
+    volume: number,
+    price: number,
+    flag: OrderFlag,
+    receiver: IPlaceOrderResultReceiver,
+  ) {
+    switch (flag) {
+      case "limit":
+        return this._placeLimitOrder(
+          symbol,
+          offset,
+          side,
+          volume,
+          price,
+          receiver,
+        );
+
+      case "market":
+        return this._placeMarketOrder(symbol, offset, side, volume, receiver);
+    }
+  }
+
+  private _clearAllCancelOrders() {
+    this.cancelOrders.forEach((receiver) => {
+      receiver.onCancelOrderError("Request Error");
+    });
+
+    this.cancelOrders.clear();
   }
 
   cancelOrder(order: OrderData, receiver: ICancelOrderResultReceiver) {
@@ -957,12 +1177,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
         ActionFlag: ctp.ActionFlagType.Delete,
       }),
     ).then((requestId) => {
-      if (!requestId) {
-        receiver.onCancelOrderError("Request Failed");
-        return;
-      }
-
-      if (requestId < 0) {
+      if (!requestId || requestId < 0) {
         receiver.onCancelOrderError("Request Error");
         return;
       }

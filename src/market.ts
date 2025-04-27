@@ -12,8 +12,8 @@
 import ctp from "napi-ctp";
 import { CTPProvider } from "./provider.js";
 import { InstrumentData, OrderBook, TickData } from "./typedef.js";
+import { isValidPrice, isValidVolume, parseSymbol } from "./utils.js";
 import { calcTapeData } from "./tape.js";
-import { parseSymbol } from "./utils.js";
 import {
   ILifecycleListener,
   IMarketProvider,
@@ -22,9 +22,6 @@ import {
   IMarketRecorderSymbols,
   ITickReceiver,
 } from "./interfaces.js";
-
-const isValidPrice = (x: number) => x !== Number.MAX_VALUE && x !== 0;
-const isValidVolume = (x: number) => x !== Number.MAX_VALUE && x !== 0;
 
 export interface IMarketListener {
   onSubscribed: (symbol: string) => void;
