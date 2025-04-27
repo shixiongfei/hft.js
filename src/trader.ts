@@ -150,8 +150,8 @@ export class Trader extends CTPProvider implements ITraderProvider {
 
     this.traderApi.on(ctp.TraderEvent.FrontDisconnected, () => {
       this._clearAllMarketOrders();
-      this._clearAllLimitOrders();
-      this._clearAllCancelOrders();
+      this.placeOrders.clear();
+      this.cancelOrders.clear();
     });
 
     this.traderApi.on<ctp.RspAuthenticateField>(
@@ -944,14 +944,6 @@ export class Trader extends CTPProvider implements ITraderProvider {
     receiver.onOrders(orders);
   }
 
-  private _clearAllLimitOrders() {
-    this.placeOrders.forEach((receiver) => {
-      receiver.onPlaceOrderError("Request Error");
-    });
-
-    this.placeOrders.clear();
-  }
-
   private _placeLimitOrder(
     symbol: string,
     offset: OffsetType,
@@ -1142,14 +1134,6 @@ export class Trader extends CTPProvider implements ITraderProvider {
       case "market":
         return this._placeMarketOrder(symbol, offset, side, volume, receiver);
     }
-  }
-
-  private _clearAllCancelOrders() {
-    this.cancelOrders.forEach((receiver) => {
-      receiver.onCancelOrderError("Request Error");
-    });
-
-    this.cancelOrders.clear();
   }
 
   cancelOrder(order: OrderData, receiver: ICancelOrderResultReceiver) {
