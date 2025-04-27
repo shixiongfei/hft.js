@@ -1020,22 +1020,6 @@ export class Trader extends CTPProvider implements ITraderProvider {
     this.marketOrdersQueue.clear();
   }
 
-  private _cleearMarketOrders(instrumentId: string) {
-    const queue = this.marketOrdersQueue.get(instrumentId);
-
-    if (!queue) {
-      return;
-    }
-
-    const orders = queue.toArray();
-
-    orders.forEach((order) => {
-      order.receiver.onPlaceOrderError("Request Error");
-    });
-
-    this.marketOrdersQueue.delete(instrumentId);
-  }
-
   private _placeMarketOrder(
     symbol: string,
     offset: OffsetType,
@@ -1103,7 +1087,14 @@ export class Trader extends CTPProvider implements ITraderProvider {
       }),
     ).then((requestId) => {
       if (!requestId || requestId < 0) {
-        this._cleearMarketOrders(instrumentId);
+        const orders = queue.toArray();
+
+        orders.forEach((order) => {
+          order.receiver.onPlaceOrderError("Request Error");
+        });
+
+        this.marketOrdersQueue.delete(instrumentId);
+
         return;
       }
 
