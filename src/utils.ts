@@ -124,7 +124,6 @@ export const buyOpen = (
   volume: number,
   price: number,
   receiver: IPlaceOrderResultReceiver,
-  flag: OrderFlag = "limit",
 ) =>
   engine.placeOrder(
     strategy,
@@ -133,7 +132,7 @@ export const buyOpen = (
     "long",
     volume,
     price,
-    flag,
+    price > 0 ? "limit" : "market",
     receiver,
   );
 
@@ -145,7 +144,6 @@ export const buyClose = (
   price: number,
   isToday: boolean,
   receiver: IPlaceOrderResultReceiver,
-  flag: OrderFlag = "limit",
 ) =>
   engine.placeOrder(
     strategy,
@@ -154,7 +152,7 @@ export const buyClose = (
     "long",
     volume,
     price,
-    flag,
+    price > 0 ? "limit" : "market",
     receiver,
   );
 
@@ -165,7 +163,6 @@ export const sellOpen = (
   volume: number,
   price: number,
   receiver: IPlaceOrderResultReceiver,
-  flag: OrderFlag = "limit",
 ) =>
   engine.placeOrder(
     strategy,
@@ -174,7 +171,7 @@ export const sellOpen = (
     "short",
     volume,
     price,
-    flag,
+    price > 0 ? "limit" : "market",
     receiver,
   );
 
@@ -186,7 +183,6 @@ export const sellClose = (
   price: number,
   isToday: boolean,
   receiver: IPlaceOrderResultReceiver,
-  flag: OrderFlag = "limit",
 ) =>
   engine.placeOrder(
     strategy,
@@ -195,6 +191,6 @@ export const sellClose = (
     "short",
     volume,
     price,
-    flag,
+    price > 0 ? "limit" : "market",
     receiver,
   );
