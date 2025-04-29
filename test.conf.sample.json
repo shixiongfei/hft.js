@@ -22,5 +22,9 @@
     "UserProductInfo": "hft.js",
     "AuthCode": "0000000000000000",
     "AppID": "simnow_client_test"
+  },
+
+  "Test": {
+    "Symbol": "ni2505.SHFE"
   }
 }

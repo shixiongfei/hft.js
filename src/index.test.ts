@@ -20,6 +20,7 @@ export type Configure = {
   FrontTdAddrs: string[];
   FrontMdAddrs: string[];
   UserInfo: hft.CTPUserInfo;
+  Test: { Symbol: string };
 };
 
 const existsFile = (filename: string) => {
@@ -47,7 +48,7 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver, hft.IBarReceiver {
   private lastTick?: hft.TickData;
   private lastBar?: hft.BarData;
   private engine: hft.IRuntimeEngine;
-  readonly symbol = "ni2505.SHFE";
+  readonly symbol = config.Test.Symbol;
 
   constructor(engine: hft.IRuntimeEngine) {
     this.engine = engine;
@@ -157,7 +158,7 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver, hft.IBarReceiver {
       setTimeout(() => {
         this.engine.queryPosition(this.symbol, {
           onPosition: (position) => {
-            if (!position || !this.lastTick) {
+            if (!position) {
               return;
             }
 
@@ -174,7 +175,7 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver, hft.IBarReceiver {
                 this,
                 this.symbol,
                 todayLong,
-                this.lastTick.orderBook.bids.price[0],
+                0,
                 true,
                 {
                   onPlaceOrderSent: (receiptId) => {
