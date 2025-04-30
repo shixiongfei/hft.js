@@ -669,41 +669,43 @@ export class Trader extends CTPProvider implements ITraderProvider {
           return;
         }
 
-        const upperPrice = isLimitPrice
-          ? depthMarketData.UpperLimitPrice
-          : depthMarketData.BandingUpperPrice;
+        if (!queue.isEmpty()) {
+          const upperPrice = isLimitPrice
+            ? depthMarketData.UpperLimitPrice
+            : depthMarketData.BandingUpperPrice;
 
-        const lowerPrice = isLimitPrice
-          ? depthMarketData.LowerLimitPrice
-          : depthMarketData.BandingLowerPrice;
+          const lowerPrice = isLimitPrice
+            ? depthMarketData.LowerLimitPrice
+            : depthMarketData.BandingLowerPrice;
 
-        const orders = queue.toArray();
+          const orders = queue.toArray();
 
-        orders.forEach((order) => {
-          switch (order.side) {
-            case "long":
-              this._placeLimitOrder(
-                order.symbol,
-                order.offset,
-                order.side,
-                order.volume,
-                upperPrice,
-                order.receiver,
-              );
-              break;
+          orders.forEach((order) => {
+            switch (order.side) {
+              case "long":
+                this._placeLimitOrder(
+                  order.symbol,
+                  order.offset,
+                  order.side,
+                  order.volume,
+                  upperPrice,
+                  order.receiver,
+                );
+                break;
 
-            case "short":
-              this._placeLimitOrder(
-                order.symbol,
-                order.offset,
-                order.side,
-                order.volume,
-                lowerPrice,
-                order.receiver,
-              );
-              break;
-          }
-        });
+              case "short":
+                this._placeLimitOrder(
+                  order.symbol,
+                  order.offset,
+                  order.side,
+                  order.volume,
+                  lowerPrice,
+                  order.receiver,
+                );
+                break;
+            }
+          });
+        }
 
         this.marketOrdersQueue.delete(depthMarketData.InstrumentID);
       },
