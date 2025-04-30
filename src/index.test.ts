@@ -158,7 +158,7 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver, hft.IBarReceiver {
       setTimeout(() => {
         this.engine.queryPosition(this.symbol, {
           onPosition: (position) => {
-            if (!position) {
+            if (!position || !this.lastTick) {
               return;
             }
 
