@@ -200,12 +200,14 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver, hft.IBarReceiver {
 }
 
 const market = hft.createMarket(config.FlowMdPath, config.FrontMdAddrs, {
-  onSubscribed: (symbol) => {
-    console.log(`Market subscribed: ${symbol}`);
-  },
+  listener: {
+    onSubscribed: (symbol) => {
+      console.log(`Market subscribed: ${symbol}`);
+    },
 
-  onUnsubscribed: (symbol) => {
-    console.log(`Market unsubscribed: ${symbol}`);
+    onUnsubscribed: (symbol) => {
+      console.log(`Market unsubscribed: ${symbol}`);
+    },
   },
 });
 

@@ -28,6 +28,10 @@ export interface IMarketListener {
   onUnsubscribed: (symbol: string) => void;
 }
 
+export type MarketOptions = {
+  listener?: IMarketListener;
+};
+
 export class Market
   extends CTPProvider
   implements IMarketProvider, IMarketRecorderProvider
@@ -45,15 +49,18 @@ export class Market
   constructor(
     flowMdPath: string,
     frontMdAddrs: string | string[],
-    listener?: IMarketListener,
+    options?: MarketOptions,
   ) {
     super(flowMdPath, frontMdAddrs);
-    this.listener = listener;
     this.tradingDay = 0;
     this.recordings = new Set();
     this.symbols = new Map();
     this.lastTicks = new Map();
     this.subscribers = new Map();
+
+    if (options?.listener) {
+      this.listener = options.listener;
+    }
   }
 
   getRecorder() {
@@ -424,5 +431,5 @@ export class Market
 export const createMarket = (
   flowMdPath: string,
   frontMdAddrs: string | string[],
-  listener?: IMarketListener,
-) => new Market(flowMdPath, frontMdAddrs, listener);
+  options?: MarketOptions,
+) => new Market(flowMdPath, frontMdAddrs, options);
