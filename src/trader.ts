@@ -27,6 +27,7 @@ import {
   PriceRange,
   ProductType,
   SideType,
+  TickData,
   TradeData,
   TradingAccount,
   Writeable,
@@ -48,15 +49,26 @@ import {
   ITradingAccountsReceiver,
 } from "./interfaces.js";
 
-type MarginRateQuery = { symbol: string; receiver: IMarginRateReceiver };
+type PositionInfo = Writeable<PositionData>;
+type OrderStat = Writeable<OrderStatistic>;
+
+type MarginRateQuery = {
+  symbol: string;
+  receiver: IMarginRateReceiver;
+};
 
 type CommissionRateQuery = {
   symbol: string;
   receiver: ICommissionRateReceiver;
 };
 
-type PositionInfo = Writeable<PositionData>;
-type OrderStat = Writeable<OrderStatistic>;
+type MarketOrder = {
+  symbol: string;
+  offset: OffsetType;
+  side: SideType;
+  volume: number;
+  receiver: IPlaceOrderResultReceiver;
+};
 
 export type CTPUserInfo = {
   BrokerID: string;
@@ -68,12 +80,12 @@ export type CTPUserInfo = {
   AppID: string;
 };
 
-type MarketOrder = {
-  symbol: string;
-  offset: OffsetType;
-  side: SideType;
-  volume: number;
-  receiver: IPlaceOrderResultReceiver;
+export type FastQueryLastTickFunc = (
+  instrumentId: string,
+) => TickData | undefined;
+
+export type TraderOptions = {
+  fastQueryLastTick?: FastQueryLastTickFunc;
 };
 
 export class Trader extends CTPProvider implements ITraderProvider {
@@ -84,6 +96,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
   private orderRef: number;
   private accountsQueryTime: number;
   private positionDetailsChanged: boolean;
+  private readonly fastQueryLastTick?: FastQueryLastTickFunc;
   private readonly userInfo: CTPUserInfo;
   private readonly receivers: IOrderReceiver[];
   private readonly accounts: ctp.TradingAccountField[];
@@ -108,6 +121,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     flowTdPath: string,
     frontTdAddrs: string | string[],
     userInfo: CTPUserInfo,
+    options?: TraderOptions,
   ) {
     super(flowTdPath, frontTdAddrs);
     this.tradingDay = 0;
@@ -135,6 +149,10 @@ export class Trader extends CTPProvider implements ITraderProvider {
     this.commRatesQueue = new Denque();
     this.accountsQueue = new Denque();
     this.positionDetailsQueue = new Denque();
+
+    if (options?.fastQueryLastTick) {
+      this.fastQueryLastTick = options.fastQueryLastTick;
+    }
   }
 
   open(lifecycle: ILifecycleListener) {
@@ -1072,6 +1090,54 @@ export class Trader extends CTPProvider implements ITraderProvider {
       return;
     }
 
+    if (this.fastQueryLastTick) {
+      const lastTick = this.fastQueryLastTick(instrumentId);
+
+      if (lastTick && lastTick.tradingDay === this.tradingDay) {
+        const isLimitPrice =
+          !isValidPrice(lastTick.bandings.upper) ||
+          !isValidPrice(lastTick.bandings.lower);
+
+        if (isLimitPrice) {
+          this.priceLimit.set(instrumentId, { ...lastTick.limits });
+        }
+
+        const upperPrice = isLimitPrice
+          ? lastTick.limits.upper
+          : lastTick.bandings.upper;
+
+        const lowerPrice = isLimitPrice
+          ? lastTick.limits.lower
+          : lastTick.bandings.lower;
+
+        switch (side) {
+          case "long":
+            this._placeLimitOrder(
+              symbol,
+              offset,
+              side,
+              volume,
+              upperPrice,
+              receiver,
+            );
+            break;
+
+          case "short":
+            this._placeLimitOrder(
+              symbol,
+              offset,
+              side,
+              volume,
+              lowerPrice,
+              receiver,
+            );
+            break;
+        }
+
+        return;
+      }
+    }
+
     let queue = this.marketOrdersQueue.get(instrumentId);
 
     if (queue) {
@@ -1797,4 +1863,5 @@ export const createTrader = (
   flowTdPath: string,
   frontTdAddrs: string | string[],
   userInfo: CTPUserInfo,
-) => new Trader(flowTdPath, frontTdAddrs, userInfo);
+  options?: TraderOptions,
+) => new Trader(flowTdPath, frontTdAddrs, userInfo, options);

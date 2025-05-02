@@ -72,6 +72,10 @@ export class Market
     this.recorderSymbols = symbols;
   }
 
+  getLastTick(instrumentId: string) {
+    return this.lastTicks.get(instrumentId);
+  }
+
   open(lifecycle: ILifecycleListener) {
     if (this.marketApi) {
       return true;

@@ -199,12 +199,6 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver, hft.IBarReceiver {
   }
 }
 
-const trader = hft.createTrader(
-  config.FlowTdPath,
-  config.FrontTdAddrs,
-  config.UserInfo,
-);
-
 const market = hft.createMarket(config.FlowMdPath, config.FrontMdAddrs, {
   onSubscribed: (symbol) => {
     console.log(`Market subscribed: ${symbol}`);
@@ -214,6 +208,13 @@ const market = hft.createMarket(config.FlowMdPath, config.FrontMdAddrs, {
     console.log(`Market unsubscribed: ${symbol}`);
   },
 });
+
+const trader = hft.createTrader(
+  config.FlowTdPath,
+  config.FrontTdAddrs,
+  config.UserInfo,
+  { fastQueryLastTick: (instrumentId) => market.getLastTick(instrumentId) },
+);
 
 const recorder = market.getRecorder();
 const enableRecorder = false;
