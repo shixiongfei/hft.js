@@ -9,6 +9,7 @@
  * https://github.com/shixiongfei/hft.js
  */
 
+import fs from "node:fs";
 import ctp from "napi-ctp";
 import { ErrorType, ILifecycleListener } from "./interfaces.js";
 
@@ -19,6 +20,12 @@ export class CTPProvider {
   constructor(flowPath: string, frontAddrs: string | string[]) {
     this.flowPath = flowPath;
     this.frontAddrs = frontAddrs;
+
+    try {
+      fs.accessSync(this.flowPath);
+    } catch {
+      fs.mkdirSync(this.flowPath, { recursive: true });
+    }
   }
 
   private _sleep(ms: number) {

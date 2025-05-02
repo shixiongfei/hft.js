@@ -23,26 +23,9 @@ export type Configure = {
   Test: { Symbol: string };
 };
 
-const existsFile = (filename: string) => {
-  try {
-    fs.accessSync(filename);
-    return true;
-  } catch {
-    return false;
-  }
-};
-
 const config = JSON.parse(
   fs.readFileSync("test.conf.json", "utf8"),
 ) as Configure;
-
-if (!existsFile(config.FlowTdPath)) {
-  fs.mkdirSync(config.FlowTdPath, { recursive: true });
-}
-
-if (!existsFile(config.FlowMdPath)) {
-  fs.mkdirSync(config.FlowMdPath, { recursive: true });
-}
 
 class Strategy implements hft.IStrategy, hft.ITickReceiver, hft.IBarReceiver {
   private lastTick?: hft.TickData;
