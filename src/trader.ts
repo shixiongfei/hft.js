@@ -1770,6 +1770,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
       id: account.AccountID,
       currency: account.CurrencyID,
       preBalance: account.PreBalance - account.Withdraw + account.Deposit,
+      preMargin: account.PreMargin,
       balance: account.Balance,
       cash: account.Available,
       margin: account.CurrMargin,

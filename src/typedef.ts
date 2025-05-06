@@ -168,6 +168,7 @@ export type TradingAccount = Readonly<{
   id: string;
   currency: string;
   preBalance: number;
+  preMargin: number;
   balance: number;
   cash: number;
   margin: number;
