@@ -10,7 +10,6 @@
  */
 
 import fs from "node:fs";
-import { exit } from "node:process";
 import ctp from "napi-ctp";
 import * as hft from ".";
 
@@ -48,7 +47,7 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver, hft.IBarReceiver {
       onInstrument: (instrument) => {
         if (!instrument) {
           console.error("Symbol", this.symbol, "error");
-          exit(1);
+          process.exit(1);
         }
 
         console.log("Instrument", instrument);
@@ -245,5 +244,5 @@ broker.addStrategy(new Strategy(broker));
 
 if (!broker.start()) {
   console.error("Broker start failed");
-  exit(1);
+  process.exit(1);
 }
