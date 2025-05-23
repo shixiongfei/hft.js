@@ -281,16 +281,15 @@ export class Market
           orderBook: Object.freeze(orderBook),
         });
 
+        const lastTick = this.lastTicks.get(instrumentId);
         const receivers = this.subscribers.get(instrumentId);
 
-        if (receivers && receivers.length > 0) {
-          const lastTick = this.lastTicks.get(instrumentId);
-          const tape = calcTapeData(tick, lastTick);
+        this.lastTicks.set(instrumentId, tick);
 
+        if (receivers && receivers.length > 0) {
+          const tape = calcTapeData(tick, lastTick);
           receivers.forEach((receiver) => receiver.onTick(tick, tape));
         }
-
-        this.lastTicks.set(instrumentId, tick);
       },
     );
 
