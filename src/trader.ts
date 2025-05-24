@@ -1179,6 +1179,11 @@ export class Trader extends CTPProvider implements ITraderProvider {
     flag: OrderFlag,
     receiver: IPlaceOrderResultReceiver,
   ) {
+    if (volume <= 0) {
+      receiver.onPlaceOrderError("Invalid Volume");
+      return;
+    }
+
     switch (flag) {
       case "limit":
         return this._placeLimitOrder(
