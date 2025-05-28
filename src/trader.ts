@@ -18,6 +18,7 @@ import {
   InstrumentData,
   MarginRate,
   OffsetType,
+  OptionsType,
   OrderData,
   OrderFlag,
   OrderStatistic,
@@ -1348,8 +1349,29 @@ export class Trader extends CTPProvider implements ITraderProvider {
       case ctp.ProductClassType.Options:
         return "options";
 
+      case ctp.ProductClassType.Spot:
+        return "spot";
+
+      case ctp.ProductClassType.SpotOption:
+        return "spot-options";
+
       default:
         throw new Error(`Unsupported product class: ${productClass}`);
+    }
+  }
+
+  private _calcOptionsType(
+    optionsType: ctp.OptionsTypeType,
+  ): OptionsType | undefined {
+    switch (optionsType) {
+      case ctp.OptionsTypeType.CallOptions:
+        return "call";
+
+      case ctp.OptionsTypeType.PutOptions:
+        return "put";
+
+      default:
+        return undefined;
     }
   }
 
@@ -1729,6 +1751,8 @@ export class Trader extends CTPProvider implements ITraderProvider {
       priceTick: instrument.PriceTick,
       maxLimitOrderVolume: instrument.MaxLimitOrderVolume,
       minLimitOrderVolume: instrument.MinLimitOrderVolume,
+      strikePrice: instrument.StrikePrice,
+      optionsType: this._calcOptionsType(instrument.OptionsType),
     });
   }
 

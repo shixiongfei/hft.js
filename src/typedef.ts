@@ -178,7 +178,8 @@ export type TradingAccount = Readonly<{
   frozenCommission: number;
 }>;
 
-export type ProductType = "futures" | "options";
+export type ProductType = "futures" | "options" | "spot" | "spot-options";
+export type OptionsType = "call" | "put";
 
 export type InstrumentData = Readonly<{
   symbol: string;
@@ -195,6 +196,8 @@ export type InstrumentData = Readonly<{
   priceTick: number;
   maxLimitOrderVolume: number;
   minLimitOrderVolume: number;
+  strikePrice: number;
+  optionsType?: OptionsType;
 }>;
 
 export type PriceVolume = Readonly<{
