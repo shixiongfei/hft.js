@@ -100,22 +100,22 @@ class Strategy implements hft.IStrategy, hft.ITickReceiver, hft.IBarReceiver {
         console.log(this.lastBar);
       }
 
-      hft.buyOpen(
-        this.engine,
-        this,
-        this.symbol,
-        1,
-        this.lastTick.orderBook.asks.price[0],
-        {
-          onPlaceOrderSent: (receiptId) => {
-            console.log("Open Place Order Receipt Id", receiptId);
-          },
+      const price = this.lastTick.orderBook.asks.price[0];
 
-          onPlaceOrderError: (reason) => {
-            console.error("Open Place Order Error", reason);
-          },
+      if (!price) {
+        console.error("Invalid price");
+        return;
+      }
+
+      hft.buyOpen(this.engine, this, this.symbol, 1, price, {
+        onPlaceOrderSent: (receiptId) => {
+          console.log("Open Place Order Receipt Id", receiptId);
         },
-      );
+
+        onPlaceOrderError: (reason) => {
+          console.error("Open Place Order Error", reason);
+        },
+      });
     }, 30 * 1000);
   }
 

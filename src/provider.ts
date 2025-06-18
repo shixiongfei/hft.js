@@ -69,7 +69,7 @@ export class CTPProvider {
   }
 
   protected _parseTime(time: string) {
-    const [hour, minute, second] = time.split(":").map((x) => parseInt(x));
-    return hour * 10000 + minute * 100 + second;
+    const [hh = 0, mm = 0, ss = 0] = time.split(":").map((x) => parseInt(x));
+    return hh * 10000 + mm * 100 + ss;
   }
 }

@@ -101,21 +101,15 @@ export class BarGenerator implements ITickReceiver {
 
     switch (tape.direction) {
       case "up":
-        if (tick.lastPrice in this.bar.buyVolumes) {
-          this.bar.buyVolumes[tick.lastPrice] += tape.volumeDelta;
-        } else {
-          this.bar.buyVolumes[tick.lastPrice] = tape.volumeDelta;
-        }
+        this.bar.buyVolumes[tick.lastPrice] =
+          tape.volumeDelta + (this.bar.buyVolumes[tick.lastPrice] ?? 0);
 
         this.bar.delta += tape.volumeDelta;
         break;
 
       case "down":
-        if (tick.lastPrice in this.bar.sellVolumes) {
-          this.bar.sellVolumes[tick.lastPrice] += tape.volumeDelta;
-        } else {
-          this.bar.sellVolumes[tick.lastPrice] = tape.volumeDelta;
-        }
+        this.bar.sellVolumes[tick.lastPrice] =
+          tape.volumeDelta + (this.bar.sellVolumes[tick.lastPrice] ?? 0);
 
         this.bar.delta -= tape.volumeDelta;
         break;
