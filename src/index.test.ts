@@ -10,7 +10,7 @@
  */
 
 import fs from "node:fs";
-import { type DepthMarketDataField } from "napi-ctp";
+import type { DepthMarketDataField } from "@napi-ctp/types";
 import * as hft from "./index.js";
 
 export type Configure = {
