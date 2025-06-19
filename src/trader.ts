@@ -10,10 +10,31 @@
  */
 
 import Denque from "denque";
-import ctp from "napi-ctp";
+import ctp, { type Trader as TraderApi } from "napi-ctp";
+import type {
+  DepthMarketDataField,
+  DirectionType,
+  InputOrderActionField,
+  InputOrderField,
+  InstrumentCommissionRateField,
+  InstrumentField,
+  InstrumentMarginRateField,
+  InvestorPositionDetailField,
+  InvestorPositionField,
+  OffsetFlagType,
+  OptionsTypeType,
+  OrderField,
+  OrderPriceTypeType,
+  ProductClassType,
+  RspAuthenticateField,
+  RspUserLoginField,
+  SettlementInfoConfirmField,
+  TradeField,
+  TradingAccountField,
+} from "@napi-ctp/types";
 import { CTPProvider } from "./provider.js";
 import { isValidPrice, parseSymbol } from "./utils.js";
-import {
+import type {
   CommissionRate,
   InstrumentData,
   MarginRate,
@@ -33,7 +54,7 @@ import {
   TradingAccount,
   Writeable,
 } from "./typedef.js";
-import {
+import type {
   ICancelOrderResultReceiver,
   ICommissionRateReceiver,
   IInstrumentReceiver,
@@ -90,7 +111,7 @@ export type TraderOptions = {
 };
 
 export class Trader extends CTPProvider implements ITraderProvider {
-  private traderApi?: ctp.Trader;
+  private traderApi?: TraderApi;
   private tradingDay: number;
   private frontId: number;
   private sessionId: number;
@@ -100,14 +121,14 @@ export class Trader extends CTPProvider implements ITraderProvider {
   private readonly fastQueryLastTick?: FastQueryLastTickFunc;
   private readonly userInfo: CTPUserInfo;
   private readonly receivers: IOrderReceiver[];
-  private readonly accounts: ctp.TradingAccountField[];
-  private readonly positionDetails: ctp.InvestorPositionDetailField[];
-  private readonly instruments: Map<string, ctp.InstrumentField>;
+  private readonly accounts: TradingAccountField[];
+  private readonly positionDetails: InvestorPositionDetailField[];
+  private readonly instruments: Map<string, InstrumentField>;
   private readonly positions: Map<string, PositionInfo>;
-  private readonly orders: Map<string, ctp.OrderField>;
-  private readonly trades: Map<string, ctp.TradeField[]>;
-  private readonly marginRates: Map<string, ctp.InstrumentMarginRateField>;
-  private readonly commRates: Map<string, ctp.InstrumentCommissionRateField>;
+  private readonly orders: Map<string, OrderField>;
+  private readonly trades: Map<string, TradeField[]>;
+  private readonly marginRates: Map<string, InstrumentMarginRateField>;
+  private readonly commRates: Map<string, InstrumentCommissionRateField>;
   private readonly placeOrders: Map<number, IPlaceOrderResultReceiver>;
   private readonly cancelOrders: Map<number, ICancelOrderResultReceiver>;
   private readonly marketOrdersQueue: Map<string, Denque<MarketOrder>>;
@@ -173,7 +194,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
       this.cancelOrders.clear();
     });
 
-    this.traderApi.on<ctp.RspAuthenticateField>(
+    this.traderApi.on<RspAuthenticateField>(
       ctp.TraderEvent.RspAuthenticate,
       (_, options) => {
         if (this._isErrorResp(lifecycle, options, "login-error")) {
@@ -184,7 +205,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
       },
     );
 
-    this.traderApi.on<ctp.RspUserLoginField>(
+    this.traderApi.on<RspUserLoginField>(
       ctp.TraderEvent.RspUserLogin,
       (rspUserLogin, options) => {
         if (this._isErrorResp(lifecycle, options, "login-error")) {
@@ -211,7 +232,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
       },
     );
 
-    this.traderApi.on<ctp.SettlementInfoConfirmField>(
+    this.traderApi.on<SettlementInfoConfirmField>(
       ctp.TraderEvent.RspSettlementInfoConfirm,
       (_, options) => {
         if (this._isErrorResp(lifecycle, options, "login-error")) {
@@ -223,7 +244,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
       },
     );
 
-    this.traderApi.on<ctp.OrderField>(
+    this.traderApi.on<OrderField>(
       ctp.TraderEvent.RspQryOrder,
       (order, options) => {
         if (this._isErrorResp(lifecycle, options, "query-order-error")) {
@@ -242,7 +263,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
       },
     );
 
-    this.traderApi.on<ctp.TradeField>(
+    this.traderApi.on<TradeField>(
       ctp.TraderEvent.RspQryTrade,
       (trade, options) => {
         if (this._isErrorResp(lifecycle, options, "query-trade-error")) {
@@ -267,7 +288,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
       },
     );
 
-    this.traderApi.on<ctp.InstrumentField>(
+    this.traderApi.on<InstrumentField>(
       ctp.TraderEvent.RspQryInstrument,
       (instrument, options) => {
         if (this._isErrorResp(lifecycle, options, "query-instrument-error")) {
@@ -295,7 +316,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
 
     let fired = false;
 
-    this.traderApi.on<ctp.InvestorPositionField>(
+    this.traderApi.on<InvestorPositionField>(
       ctp.TraderEvent.RspQryInvestorPosition,
       (position, options) => {
         if (this._isErrorResp(lifecycle, options, "query-positions-error")) {
@@ -363,7 +384,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
       },
     );
 
-    this.traderApi.on<ctp.OrderField>(ctp.TraderEvent.RtnOrder, (order) => {
+    this.traderApi.on<OrderField>(ctp.TraderEvent.RtnOrder, (order) => {
       const orderId = this._calcOrderId(order);
       const current = this.orders.get(orderId);
 
@@ -470,7 +491,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
       }
     });
 
-    this.traderApi.on<ctp.TradeField>(ctp.TraderEvent.RtnTrade, (trade) => {
+    this.traderApi.on<TradeField>(ctp.TraderEvent.RtnTrade, (trade) => {
       const orderId = this._calcOrderId(trade);
       const trades = this.trades.get(orderId);
 
@@ -504,7 +525,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
       }
     });
 
-    this.traderApi.on<ctp.InstrumentMarginRateField>(
+    this.traderApi.on<InstrumentMarginRateField>(
       ctp.TraderEvent.RspQryInstrumentMarginRate,
       (marginRate, options) => {
         const query = this.marginRatesQueue.shift();
@@ -531,7 +552,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
       },
     );
 
-    this.traderApi.on<ctp.InstrumentCommissionRateField>(
+    this.traderApi.on<InstrumentCommissionRateField>(
       ctp.TraderEvent.RspQryInstrumentCommissionRate,
       (commRate, options) => {
         const query = this.commRatesQueue.shift();
@@ -560,7 +581,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
       },
     );
 
-    this.traderApi.on<ctp.TradingAccountField>(
+    this.traderApi.on<TradingAccountField>(
       ctp.TraderEvent.RspQryTradingAccount,
       (account, options) => {
         if (this._isErrorResp(lifecycle, options, "query-accounts-error")) {
@@ -590,7 +611,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
       },
     );
 
-    this.traderApi.on<ctp.InvestorPositionDetailField>(
+    this.traderApi.on<InvestorPositionDetailField>(
       ctp.TraderEvent.RspQryInvestorPositionDetail,
       (positionDetail, options) => {
         if (
@@ -627,7 +648,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
       },
     );
 
-    this.traderApi.on<ctp.InputOrderField>(
+    this.traderApi.on<InputOrderField>(
       ctp.TraderEvent.RspOrderInsert,
       (order, options) => {
         if (options.rspInfo && order && options.requestId && options.isLast) {
@@ -644,7 +665,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
       },
     );
 
-    this.traderApi.on<ctp.InputOrderActionField>(
+    this.traderApi.on<InputOrderActionField>(
       ctp.TraderEvent.RspOrderAction,
       (order, options) => {
         if (options.rspInfo && order && options.requestId && options.isLast) {
@@ -661,7 +682,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
       },
     );
 
-    this.traderApi.on<ctp.DepthMarketDataField>(
+    this.traderApi.on<DepthMarketDataField>(
       ctp.TraderEvent.RspQryDepthMarketData,
       (depthMarketData, options) => {
         if (
@@ -1247,19 +1268,16 @@ export class Trader extends CTPProvider implements ITraderProvider {
     return `${instrument.InstrumentID}.${instrument.ExchangeID}`;
   }
 
-  private _calcOrderId(orderOrTrade: ctp.OrderField | ctp.TradeField) {
+  private _calcOrderId(orderOrTrade: OrderField | TradeField) {
     const { ExchangeID, TraderID, OrderLocalID } = orderOrTrade;
     return `${ExchangeID}:${TraderID}:${OrderLocalID}`;
   }
 
-  private _calcReceiptId(order: ctp.OrderField | ctp.InputOrderActionField) {
+  private _calcReceiptId(order: OrderField | InputOrderActionField) {
     return `${order.FrontID}:${order.SessionID}:${parseInt(order.OrderRef)}`;
   }
 
-  private _calcOrderStatus(
-    order: ctp.OrderField,
-    traded?: number,
-  ): OrderStatus {
+  private _calcOrderStatus(order: OrderField, traded?: number): OrderStatus {
     switch (order.OrderStatus) {
       case ctp.OrderStatusType.Unknown:
         return "submitted";
@@ -1285,7 +1303,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     }
   }
 
-  private _calcOrderFlag(orderPriceType: ctp.OrderPriceTypeType): OrderFlag {
+  private _calcOrderFlag(orderPriceType: OrderPriceTypeType): OrderFlag {
     switch (orderPriceType) {
       case ctp.OrderPriceTypeType.LimitPrice:
         return "limit";
@@ -1295,7 +1313,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     }
   }
 
-  private _calcSideType(direction: ctp.DirectionType): SideType {
+  private _calcSideType(direction: DirectionType): SideType {
     switch (direction) {
       case ctp.DirectionType.Buy:
         return "long";
@@ -1315,7 +1333,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     }
   }
 
-  private _calcOffsetType(offset: ctp.OffsetFlagType): OffsetType {
+  private _calcOffsetType(offset: OffsetFlagType): OffsetType {
     switch (offset) {
       case ctp.OffsetFlagType.Open:
         return "open";
@@ -1341,7 +1359,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     }
   }
 
-  private _calcProductType(productClass: ctp.ProductClassType): ProductType {
+  private _calcProductType(productClass: ProductClassType): ProductType {
     switch (productClass) {
       case ctp.ProductClassType.Futures:
         return "futures";
@@ -1361,7 +1379,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
   }
 
   private _calcOptionsType(
-    optionsType: ctp.OptionsTypeType,
+    optionsType: OptionsTypeType,
   ): OptionsType | undefined {
     switch (optionsType) {
       case ctp.OptionsTypeType.CallOptions:
@@ -1698,7 +1716,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     }
   }
 
-  private _toTradeData(trade: ctp.TradeField): TradeData {
+  private _toTradeData(trade: TradeField): TradeData {
     return Object.freeze({
       id: trade.TradeID,
       date: parseInt(trade.TradeDate),
@@ -1708,7 +1726,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     });
   }
 
-  private _toOrderData(order: ctp.OrderField): OrderData {
+  private _toOrderData(order: OrderField): OrderData {
     const orderId = this._calcOrderId(order);
     const trades = this.trades.get(orderId) ?? [];
 
@@ -1724,7 +1742,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
       time: this._parseTime(order.InsertTime),
       flag: this._calcOrderFlag(order.OrderPriceType),
       side: this._calcSideType(order.Direction),
-      offset: this._calcOffsetType(order.CombOffsetFlag as ctp.OffsetFlagType),
+      offset: this._calcOffsetType(order.CombOffsetFlag as OffsetFlagType),
       price: order.LimitPrice,
       volume: order.VolumeTotalOriginal,
       traded: traded,
@@ -1735,7 +1753,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     });
   }
 
-  private _toInstrumentData(instrument: ctp.InstrumentField): InstrumentData {
+  private _toInstrumentData(instrument: InstrumentField): InstrumentData {
     return Object.freeze({
       symbol: `${instrument.InstrumentID}.${instrument.ExchangeID}`,
       id: instrument.InstrumentID,
@@ -1758,7 +1776,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
 
   private _toCommissionRate(
     symbol: string,
-    commRate: ctp.InstrumentCommissionRateField,
+    commRate: InstrumentCommissionRateField,
   ): CommissionRate {
     return Object.freeze({
       symbol: symbol,
@@ -1779,7 +1797,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
 
   private _toMarginRate(
     symbol: string,
-    marginRate: ctp.InstrumentMarginRateField,
+    marginRate: InstrumentMarginRateField,
   ): MarginRate {
     return Object.freeze({
       symbol: symbol,
@@ -1794,7 +1812,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     });
   }
 
-  private _toTradingAccount(account: ctp.TradingAccountField): TradingAccount {
+  private _toTradingAccount(account: TradingAccountField): TradingAccount {
     return Object.freeze({
       id: account.AccountID,
       currency: account.CurrencyID,
@@ -1811,7 +1829,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
   }
 
   private _toPositionDetail(
-    positionDetail: ctp.InvestorPositionDetailField,
+    positionDetail: InvestorPositionDetailField,
   ): PositionDetail {
     return Object.freeze({
       symbol: this._toSymbol(positionDetail.InstrumentID)!,

@@ -9,8 +9,8 @@
  * https://github.com/shixiongfei/hft.js
  */
 
-import { BarData, TapeData, TickData, Writeable } from "./typedef.js";
-import { IBarReceiver, ITickReceiver } from "./interfaces.js";
+import type { BarData, TapeData, TickData, Writeable } from "./typedef.js";
+import type { IBarReceiver, ITickReceiver } from "./interfaces.js";
 import { getBarVolume } from "./utils.js";
 
 export type BarInfo = Writeable<BarData>;

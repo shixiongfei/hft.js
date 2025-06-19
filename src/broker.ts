@@ -9,9 +9,9 @@
  * https://github.com/shixiongfei/hft.js
  */
 
-import { OffsetType, OrderData, OrderFlag, SideType } from "./typedef.js";
+import type { OffsetType, OrderData, OrderFlag, SideType } from "./typedef.js";
 import { BarGenerator, createBarGenerator } from "./bar.js";
-import {
+import type {
   ICancelOrderResultReceiver,
   ErrorType,
   ICancelOrderRiskManager,

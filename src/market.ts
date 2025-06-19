@@ -9,12 +9,17 @@
  * https://github.com/shixiongfei/hft.js
  */
 
-import ctp from "napi-ctp";
+import ctp, { type MarketData as MarketApi } from "napi-ctp";
+import type {
+  DepthMarketDataField,
+  RspUserLoginField,
+  SpecificInstrumentField,
+} from "@napi-ctp/types";
 import { CTPProvider } from "./provider.js";
-import { InstrumentData, OrderBook, TickData } from "./typedef.js";
+import type { InstrumentData, OrderBook, TickData } from "./typedef.js";
 import { isValidPrice, isValidVolume, parseSymbol } from "./utils.js";
 import { calcTapeData } from "./tape.js";
-import {
+import type {
   ILifecycleListener,
   IMarketProvider,
   IMarketRecorderProvider,
@@ -36,7 +41,7 @@ export class Market
   extends CTPProvider
   implements IMarketProvider, IMarketRecorderProvider
 {
-  private marketApi?: ctp.MarketData;
+  private marketApi?: MarketApi;
   private recorder?: IMarketRecorderReceiver;
   private recorderSymbols?: IMarketRecorderSymbols;
   private tradingDay: number;
@@ -96,7 +101,7 @@ export class Market
 
     let fired = false;
 
-    this.marketApi.on<ctp.RspUserLoginField>(
+    this.marketApi.on<RspUserLoginField>(
       ctp.MarketDataEvent.RspUserLogin,
       (_, options) => {
         if (this._isErrorResp(lifecycle, options, "login-error")) {
@@ -128,7 +133,7 @@ export class Market
       },
     );
 
-    this.marketApi.on<ctp.SpecificInstrumentField>(
+    this.marketApi.on<SpecificInstrumentField>(
       ctp.MarketDataEvent.RspSubMarketData,
       (instrument) => {
         if (!this.listener) {
@@ -141,7 +146,7 @@ export class Market
       },
     );
 
-    this.marketApi.on<ctp.SpecificInstrumentField>(
+    this.marketApi.on<SpecificInstrumentField>(
       ctp.MarketDataEvent.RspUnSubMarketData,
       (instrument) => {
         if (!this.listener) {
@@ -154,7 +159,7 @@ export class Market
       },
     );
 
-    this.marketApi.on<ctp.DepthMarketDataField>(
+    this.marketApi.on<DepthMarketDataField>(
       ctp.MarketDataEvent.RtnDepthMarketData,
       (depthMarketData) => {
         const instrumentId = depthMarketData.InstrumentID;

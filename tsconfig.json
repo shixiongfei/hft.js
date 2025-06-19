@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "module": "CommonJS",
-    "target": "ES5",
+    "module": "NodeNext",
+    "target": "ESNext",
     "rootDir": "src",
     "outDir": "lib",
     "declaration": true,
@@ -9,9 +9,11 @@
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true,
     "allowSyntheticDefaultImports": true,
+    "verbatimModuleSyntax": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
+    "isolatedModules": true,
     "strict": true,
     "noImplicitAny": true,
     "skipLibCheck": true,

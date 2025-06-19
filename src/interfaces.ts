@@ -9,7 +9,7 @@
  * https://github.com/shixiongfei/hft.js
  */
 
-import {
+import type {
   BarData,
   CommissionRate,
   InstrumentData,

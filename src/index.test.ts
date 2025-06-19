@@ -10,8 +10,8 @@
  */
 
 import fs from "node:fs";
-import ctp from "napi-ctp";
-import * as hft from ".";
+import { type DepthMarketDataField } from "napi-ctp";
+import * as hft from "./index.js";
 
 export type Configure = {
   FlowTdPath: string;
@@ -223,7 +223,7 @@ const enableRecorder = false;
 if (enableRecorder && recorder) {
   recorder.setRecorder(
     {
-      onMarketData: (marketData: ctp.DepthMarketDataField) => {
+      onMarketData: (marketData: DepthMarketDataField) => {
         console.log(marketData.InstrumentID, marketData.LastPrice);
       },
     },

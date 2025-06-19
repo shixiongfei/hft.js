@@ -9,9 +9,9 @@
  * https://github.com/shixiongfei/hft.js
  */
 
-import { BarData, OrderFlag } from "./typedef.js";
-import { BarInfo } from "./bar.js";
-import {
+import type { BarData, OrderFlag } from "./typedef.js";
+import type { BarInfo } from "./bar.js";
+import type {
   IPlaceOrderResultReceiver,
   IRuntimeEngine,
   IStrategy,
