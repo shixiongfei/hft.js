@@ -9,6 +9,7 @@
  * https://github.com/shixiongfei/hft.js
  */
 
+import process from "node:process";
 import fs from "node:fs";
 import type { DepthMarketDataField } from "@napi-ctp/types";
 import * as hft from "./index.js";
