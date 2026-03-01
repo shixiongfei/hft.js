@@ -29,6 +29,8 @@ import type {
   ITickReceiver,
 } from "./interfaces.js";
 
+type TickDataRaw = { tick: TickData; raw: DepthMarketDataField };
+
 export interface IMarketListener {
   onSubscribed: (symbol: string) => void;
   onUnsubscribed: (symbol: string) => void;
@@ -49,7 +51,7 @@ export class Market
   private readonly listener?: IMarketListener;
   private readonly recordings: Set<string>;
   private readonly symbols: Map<string, string>;
-  private readonly lastTicks: Map<string, TickData>;
+  private readonly lastTicks: Map<string, TickDataRaw>;
   private readonly subscribers: Map<string, ITickReceiver[]>;
 
   constructor(
@@ -86,7 +88,8 @@ export class Market
   }
 
   getLastTick(instrumentId: string) {
-    return this.lastTicks.get(instrumentId);
+    const lastTick = this.lastTicks.get(instrumentId);
+    return lastTick ? lastTick.tick : undefined;
   }
 
   open(lifecycle: ILifecycleListener, errorReceiver: IErrorReceiver) {
@@ -287,13 +290,13 @@ export class Market
           orderBook: Object.freeze(orderBook),
         });
 
-        const lastTick = this.lastTicks.get(instrumentId);
+        this.lastTicks.set(instrumentId, { tick, raw: depthMarketData });
+
         const receivers = this.subscribers.get(instrumentId);
 
-        this.lastTicks.set(instrumentId, tick);
-
         if (receivers && receivers.length > 0) {
-          const tape = calcTapeData(tick, lastTick);
+          const lastTick = this.lastTicks.get(instrumentId);
+          const tape = calcTapeData(tick, lastTick ? lastTick.tick : undefined);
           receivers.forEach((receiver) => receiver.onTick(tick, tape));
         }
       },
