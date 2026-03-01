@@ -183,7 +183,7 @@ export interface IQueryProvider {
   queryOrders: (receiver: IOrdersReceiver) => void;
 }
 
-export interface IMarketRecorderReceiver {
+export interface IMarketRecorderReceiver extends ILifecycleListener {
   onMarketData: (marketData: any) => void;
 }
 

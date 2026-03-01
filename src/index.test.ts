@@ -224,6 +224,14 @@ const enableRecorder = false;
 if (enableRecorder && recorder) {
   recorder.setRecorder(
     {
+      onOpen: () => {
+        console.log("Market Recorder is started");
+      },
+
+      onClose: () => {
+        console.log("Market Recorder is stopped");
+      },
+
       onMarketData: (marketData: DepthMarketDataField) => {
         console.log(marketData.InstrumentID, marketData.LastPrice);
       },

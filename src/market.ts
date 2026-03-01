@@ -341,6 +341,8 @@ export class Market
         this.marketApi?.subscribeMarketData(Array.from(instrumentIds)),
       );
     }
+
+    this.recorder?.onOpen();
   }
 
   stopRecorder() {
@@ -364,6 +366,8 @@ export class Market
         this.marketApi?.unsubscribeMarketData(Array.from(instrumentIds)),
       );
     }
+
+    this.recorder?.onClose();
   }
 
   subscribe(symbols: string[], receiver: ITickReceiver) {
