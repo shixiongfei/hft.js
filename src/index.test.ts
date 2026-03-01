@@ -218,7 +218,7 @@ const trader = hft.createTrader(
   { fastQueryLastTick: (instrumentId) => market.getLastTick(instrumentId) },
 );
 
-const recorder = market.getRecorder();
+const recorder = market.getRecorderProvider();
 const enableRecorder = false;
 
 if (enableRecorder && recorder) {

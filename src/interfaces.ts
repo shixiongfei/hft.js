@@ -205,7 +205,7 @@ export interface IMarketProvider
   extends IProvider,
     ITickSubscriber,
     ITickUnsubscriber {
-  getRecorder: () => IMarketRecorderProvider | undefined;
+  getRecorderProvider: () => IMarketRecorderProvider | undefined;
 }
 
 export type IPlaceOrderResultReceiver = {

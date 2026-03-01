@@ -69,7 +69,7 @@ export class Market
     }
   }
 
-  getRecorder() {
+  getRecorderProvider() {
     return this;
   }
 

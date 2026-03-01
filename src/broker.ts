@@ -59,7 +59,7 @@ export class Broker implements IRuntimeEngine {
 
     this.marketLifecycle = {
       onOpen: () => {
-        const recorder = this.market.getRecorder();
+        const recorder = this.market.getRecorderProvider();
 
         if (recorder && recorder.isRecorderReady()) {
           this.trader.queryInstruments({
@@ -77,7 +77,7 @@ export class Broker implements IRuntimeEngine {
       onClose: () => {
         this.strategies.forEach((strategy) => strategy.onDestroy());
 
-        const recorder = this.market.getRecorder();
+        const recorder = this.market.getRecorderProvider();
 
         if (recorder) {
           recorder.stopRecorder();
