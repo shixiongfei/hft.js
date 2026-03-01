@@ -39,6 +39,7 @@ import type {
 export class Broker implements IRuntimeEngine {
   private readonly trader: ITraderProvider;
   private readonly market: IMarketProvider;
+  private readonly errorReceiver: IErrorReceiver;
   private readonly traderLifecycle: ILifecycleListener;
   private readonly marketLifecycle: ILifecycleListener;
   private readonly strategies: IStrategy[] = [];
@@ -49,11 +50,12 @@ export class Broker implements IRuntimeEngine {
   constructor(
     trader: ITraderProvider,
     market: IMarketProvider,
-    errorReceiver?: IErrorReceiver,
+    errorReceiver: IErrorReceiver,
   ) {
     this.trader = trader;
     this.market = market;
     this.generators = new Map();
+    this.errorReceiver = errorReceiver;
 
     this.marketLifecycle = {
       onOpen: () => {
@@ -81,37 +83,25 @@ export class Broker implements IRuntimeEngine {
           recorder.stopRecorder();
         }
       },
-
-      onError: (error: ErrorType, message: string) => {
-        if (errorReceiver) {
-          errorReceiver.onError(error, message);
-        }
-      },
     };
 
     this.traderLifecycle = {
       onOpen: () => {
-        this.market.open(this.marketLifecycle);
+        this.market.open(this.marketLifecycle, this.errorReceiver);
       },
 
       onClose: () => {
-        this.market.close(this.marketLifecycle);
-      },
-
-      onError: (error: ErrorType, message: string) => {
-        if (errorReceiver) {
-          errorReceiver.onError(error, message);
-        }
+        this.market.close(this.marketLifecycle, this.errorReceiver);
       },
     };
   }
 
   start() {
-    return this.trader.open(this.traderLifecycle);
+    return this.trader.open(this.traderLifecycle, this.errorReceiver);
   }
 
   stop() {
-    return this.trader.close(this.traderLifecycle);
+    return this.trader.close(this.traderLifecycle, this.errorReceiver);
   }
 
   addStrategy(strategy: IStrategy) {
@@ -304,5 +294,5 @@ export class Broker implements IRuntimeEngine {
 export const createBroker = (
   trader: ITraderProvider,
   market: IMarketProvider,
-  errorReceiver?: IErrorReceiver,
+  errorReceiver: IErrorReceiver,
 ) => new Broker(trader, market, errorReceiver);

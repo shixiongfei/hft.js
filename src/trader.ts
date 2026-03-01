@@ -57,6 +57,7 @@ import type {
 import type {
   ICancelOrderResultReceiver,
   ICommissionRateReceiver,
+  IErrorReceiver,
   IInstrumentReceiver,
   IInstrumentsReceiver,
   ILifecycleListener,
@@ -177,7 +178,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     }
   }
 
-  open(lifecycle: ILifecycleListener) {
+  open(lifecycle: ILifecycleListener, errorReceiver: IErrorReceiver) {
     if (this.traderApi) {
       return true;
     }
@@ -197,7 +198,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     this.traderApi.on<RspAuthenticateField>(
       ctp.TraderEvent.RspAuthenticate,
       (_, options) => {
-        if (this._isErrorResp(lifecycle, options, "login-error")) {
+        if (this._isErrorResp(errorReceiver, options, "login-error")) {
           return;
         }
 
@@ -208,7 +209,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     this.traderApi.on<RspUserLoginField>(
       ctp.TraderEvent.RspUserLogin,
       (rspUserLogin, options) => {
-        if (this._isErrorResp(lifecycle, options, "login-error")) {
+        if (this._isErrorResp(errorReceiver, options, "login-error")) {
           return;
         }
 
@@ -235,7 +236,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     this.traderApi.on<SettlementInfoConfirmField>(
       ctp.TraderEvent.RspSettlementInfoConfirm,
       (_, options) => {
-        if (this._isErrorResp(lifecycle, options, "login-error")) {
+        if (this._isErrorResp(errorReceiver, options, "login-error")) {
           return;
         }
 
@@ -247,7 +248,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     this.traderApi.on<OrderField>(
       ctp.TraderEvent.RspQryOrder,
       (order, options) => {
-        if (this._isErrorResp(lifecycle, options, "query-order-error")) {
+        if (this._isErrorResp(errorReceiver, options, "query-order-error")) {
           return;
         }
 
@@ -266,7 +267,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     this.traderApi.on<TradeField>(
       ctp.TraderEvent.RspQryTrade,
       (trade, options) => {
-        if (this._isErrorResp(lifecycle, options, "query-trade-error")) {
+        if (this._isErrorResp(errorReceiver, options, "query-trade-error")) {
           return;
         }
 
@@ -291,7 +292,9 @@ export class Trader extends CTPProvider implements ITraderProvider {
     this.traderApi.on<InstrumentField>(
       ctp.TraderEvent.RspQryInstrument,
       (instrument, options) => {
-        if (this._isErrorResp(lifecycle, options, "query-instrument-error")) {
+        if (
+          this._isErrorResp(errorReceiver, options, "query-instrument-error")
+        ) {
           return;
         }
 
@@ -319,7 +322,9 @@ export class Trader extends CTPProvider implements ITraderProvider {
     this.traderApi.on<InvestorPositionField>(
       ctp.TraderEvent.RspQryInvestorPosition,
       (position, options) => {
-        if (this._isErrorResp(lifecycle, options, "query-positions-error")) {
+        if (
+          this._isErrorResp(errorReceiver, options, "query-positions-error")
+        ) {
           return;
         }
 
@@ -530,7 +535,9 @@ export class Trader extends CTPProvider implements ITraderProvider {
       (marginRate, options) => {
         const query = this.marginRatesQueue.shift();
 
-        if (this._isErrorResp(lifecycle, options, "query-margin-rate-error")) {
+        if (
+          this._isErrorResp(errorReceiver, options, "query-margin-rate-error")
+        ) {
           if (query) {
             query.receiver.onMarginRate(undefined);
           }
@@ -558,7 +565,11 @@ export class Trader extends CTPProvider implements ITraderProvider {
         const query = this.commRatesQueue.shift();
 
         if (
-          this._isErrorResp(lifecycle, options, "query-commission-rate-error")
+          this._isErrorResp(
+            errorReceiver,
+            options,
+            "query-commission-rate-error",
+          )
         ) {
           if (query) {
             query.receiver.onCommissionRate(undefined);
@@ -584,7 +595,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     this.traderApi.on<TradingAccountField>(
       ctp.TraderEvent.RspQryTradingAccount,
       (account, options) => {
-        if (this._isErrorResp(lifecycle, options, "query-accounts-error")) {
+        if (this._isErrorResp(errorReceiver, options, "query-accounts-error")) {
           const receivers = this.accountsQueue.toArray();
 
           receivers.forEach((receiver) =>
@@ -615,7 +626,11 @@ export class Trader extends CTPProvider implements ITraderProvider {
       ctp.TraderEvent.RspQryInvestorPositionDetail,
       (positionDetail, options) => {
         if (
-          this._isErrorResp(lifecycle, options, "query-position-details-error")
+          this._isErrorResp(
+            errorReceiver,
+            options,
+            "query-position-details-error",
+          )
         ) {
           const receivers = this.positionDetailsQueue.toArray();
 
@@ -686,7 +701,11 @@ export class Trader extends CTPProvider implements ITraderProvider {
       ctp.TraderEvent.RspQryDepthMarketData,
       (depthMarketData, options) => {
         if (
-          this._isErrorResp(lifecycle, options, "query-depth-market-data-error")
+          this._isErrorResp(
+            errorReceiver,
+            options,
+            "query-depth-market-data-error",
+          )
         ) {
           this._clearAllMarketOrders();
           return;
@@ -754,7 +773,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     return true;
   }
 
-  close(lifecycle: ILifecycleListener) {
+  close(lifecycle: ILifecycleListener, _errorReceiver: IErrorReceiver) {
     if (!this.traderApi) {
       return;
     }

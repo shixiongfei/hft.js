@@ -65,7 +65,7 @@ export interface IErrorReceiver {
   onError: (error: ErrorType, message: string) => void;
 }
 
-export interface ILifecycleListener extends IErrorReceiver {
+export interface ILifecycleListener {
   onOpen: () => void;
   onClose: () => void;
 }
@@ -144,8 +144,12 @@ export interface IPositionDetailsReceiver {
 }
 
 export interface IProvider {
-  open: (lifecycle: ILifecycleListener) => boolean;
-  close: (lifecycle: ILifecycleListener) => void;
+  open: (
+    lifecycle: ILifecycleListener,
+    errorReceiver: IErrorReceiver,
+  ) => boolean;
+
+  close: (lifecycle: ILifecycleListener, errorReceiver: IErrorReceiver) => void;
 }
 
 export interface IOrderEmitter {

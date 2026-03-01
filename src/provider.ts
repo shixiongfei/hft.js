@@ -11,7 +11,7 @@
 
 import fs from "node:fs";
 import ctp, { type CallbackOptions } from "napi-ctp";
-import type { ErrorType, ILifecycleListener } from "./interfaces.js";
+import type { ErrorType, IErrorReceiver } from "./interfaces.js";
 
 export class CTPProvider {
   protected readonly flowPath: string;
@@ -52,7 +52,7 @@ export class CTPProvider {
   }
 
   protected _isErrorResp(
-    lifecycle: ILifecycleListener,
+    errorReceiver: IErrorReceiver,
     options: CallbackOptions,
     error: ErrorType,
   ) {
@@ -60,7 +60,7 @@ export class CTPProvider {
       return false;
     }
 
-    lifecycle.onError(
+    errorReceiver.onError(
       error,
       `${options.rspInfo.ErrorID}:${options.rspInfo.ErrorMsg}`,
     );

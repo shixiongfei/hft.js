@@ -20,6 +20,7 @@ import type { InstrumentData, OrderBook, TickData } from "./typedef.js";
 import { isValidPrice, isValidVolume, parseSymbol } from "./utils.js";
 import { calcTapeData } from "./tape.js";
 import type {
+  IErrorReceiver,
   ILifecycleListener,
   IMarketProvider,
   IMarketRecorderProvider,
@@ -88,7 +89,7 @@ export class Market
     return this.lastTicks.get(instrumentId);
   }
 
-  open(lifecycle: ILifecycleListener) {
+  open(lifecycle: ILifecycleListener, errorReceiver: IErrorReceiver) {
     if (this.marketApi) {
       return true;
     }
@@ -104,7 +105,7 @@ export class Market
     this.marketApi.on<RspUserLoginField>(
       ctp.MarketDataEvent.RspUserLogin,
       (_, options) => {
-        if (this._isErrorResp(lifecycle, options, "login-error")) {
+        if (this._isErrorResp(errorReceiver, options, "login-error")) {
           return;
         }
 
@@ -301,7 +302,7 @@ export class Market
     return true;
   }
 
-  close(lifecycle: ILifecycleListener) {
+  close(lifecycle: ILifecycleListener, _errorReceiver: IErrorReceiver) {
     if (!this.marketApi) {
       return;
     }
