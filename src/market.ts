@@ -71,6 +71,10 @@ export class Market
     }
   }
 
+  getDepthMarketDataRaw() {
+    return Array.from(this.lastTicks.values().map((lastTick) => lastTick.raw));
+  }
+
   getRecorderProvider() {
     return this;
   }

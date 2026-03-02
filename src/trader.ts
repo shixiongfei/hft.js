@@ -123,6 +123,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
   private readonly userInfo: CTPUserInfo;
   private readonly receivers: IOrderReceiver[];
   private readonly accounts: TradingAccountField[];
+  private readonly investorPositions: InvestorPositionField[];
   private readonly positionDetails: InvestorPositionDetailField[];
   private readonly instruments: Map<string, InstrumentField>;
   private readonly positions: Map<string, PositionInfo>;
@@ -156,6 +157,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
     this.userInfo = userInfo;
     this.receivers = [];
     this.accounts = [];
+    this.investorPositions = [];
     this.positionDetails = [];
     this.instruments = new Map();
     this.positions = new Map();
@@ -176,6 +178,38 @@ export class Trader extends CTPProvider implements ITraderProvider {
     if (options?.fastQueryLastTick) {
       this.fastQueryLastTick = options.fastQueryLastTick;
     }
+  }
+
+  getTradingAccountsRaw() {
+    return this.accounts;
+  }
+
+  getInvestorPositionsRaw() {
+    return this.investorPositions;
+  }
+
+  getInvestorPositionDetailsRaw() {
+    return this.positionDetails;
+  }
+
+  getInstrumentsRaw() {
+    return Array.from(this.instruments.values());
+  }
+
+  getOrdersRaw() {
+    return Array.from(this.orders.values());
+  }
+
+  getTradesRaw() {
+    return Array.from(this.trades.values());
+  }
+
+  getInstrumentMarginRatesRaw() {
+    return Array.from(this.marginRates.values());
+  }
+
+  getInstrumentCommissionRatesRaw() {
+    return Array.from(this.commRates.values());
   }
 
   open(lifecycle: ILifecycleListener, errorReceiver: IErrorReceiver) {
@@ -309,6 +343,7 @@ export class Trader extends CTPProvider implements ITraderProvider {
 
         if (options.isLast) {
           this.positions.clear();
+          this.investorPositions.splice(0, this.investorPositions.length);
 
           this._withRetry(() =>
             this.traderApi!.reqQryInvestorPosition(this.userInfo),
@@ -363,6 +398,8 @@ export class Trader extends CTPProvider implements ITraderProvider {
                 break;
             }
           }
+
+          this.investorPositions.push(position);
         }
 
         if (options.isLast) {
@@ -372,12 +409,16 @@ export class Trader extends CTPProvider implements ITraderProvider {
           }
 
           if (this.accountsQueue.size() > 0) {
+            this.accounts.splice(0, this.accounts.length);
+
             this._withRetry(() =>
               this.traderApi!.reqQryTradingAccount(this.userInfo),
             );
           }
 
           if (this.positionDetailsQueue.size() > 0) {
+            this.positionDetails.splice(0, this.positionDetails.length);
+
             this._withRetry(() =>
               this.traderApi!.reqQryInvestorPositionDetail(this.userInfo),
             );
@@ -978,10 +1019,11 @@ export class Trader extends CTPProvider implements ITraderProvider {
     }
 
     this.positionDetailsQueue.push(receiver);
-    this.positionDetails.splice(0, this.positionDetails.length);
+    this.investorPositions.splice(0, this.investorPositions.length);
+    this.positions.clear();
 
     this._withRetry(() =>
-      this.traderApi?.reqQryInvestorPositionDetail(this.userInfo),
+      this.traderApi!.reqQryInvestorPosition(this.userInfo),
     );
   }
 
