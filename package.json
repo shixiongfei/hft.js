@@ -42,6 +42,7 @@
   },
   "dependencies": {
     "denque": "^2.1.0",
+    "eventlite.js": "^1.2.2",
     "napi-ctp": "^0.5.2"
   }
 }
